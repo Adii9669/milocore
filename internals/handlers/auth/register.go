@@ -1,8 +1,6 @@
 package auth
 
 import (
-	"chat-server/internals/db"
-	"chat-server/internals/utils"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -10,6 +8,11 @@ import (
 	"os"
 	"strings"
 
+	//internals
+	"chat-server/internals/db"
+	"chat-server/internals/utils"
+
+	//libraries
 	"github.com/go-playground/validator/v10"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"

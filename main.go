@@ -3,7 +3,6 @@ package main
 import (
 	"log"
 	"net/http"
-	"os"
 
 	//my packages
 	"chat-server/internals/config"
@@ -14,35 +13,16 @@ import (
 	"chat-server/middleware"
 
 	// go libraries
-	"github.com/gorilla/handlers"
-	"github.com/gorilla/mux"
-	"github.com/joho/godotenv"
+	"github.com/gorilla/handlers" //for the websockets connection
+	"github.com/gorilla/mux"      //Mux for the routing of private and public pages (user)
 )
 
 func main() {
-
-	//Load Env
-	if err := godotenv.Load(); err != nil {
-		log.Fatal("Error Loading Env file.")
-	}
 
 	//Load the config
 	if err := config.LoadConfig(); err != nil {
 		log.Printf("Error loading Config file %v", err)
 	}
-
-	log.Println("--- CONFIGURATION DIAGNOSTIC (from main.go) ---")
-	log.Printf("SMTP_HOST at startup: '%s'", os.Getenv("SMTP_HOST"))
-	log.Printf("SMTP_PORT at startup: '%s'", os.Getenv("SMTP_PORT"))
-	log.Printf("SMTP_USER at startup: '%s'", os.Getenv("SMTP_USER"))
-	log.Printf("SMTP_USER at startup: '%s'", os.Getenv("EMAIL_FROM"))
-	log.Println("---------------------------------------------")
-
-	log.Printf("SMTP_HOST at startup: '%s'", config.Cfg.Email.SMTPHost)
-	log.Printf("SMTP_PORT at startup: '%s'", config.Cfg.Email.SMTPPort)
-	log.Printf("SMTP_USER at startup: '%s'", config.Cfg.Email.SMTPUser)
-	log.Printf("SMTP_USER at startup: '%s'", config.Cfg.Email.EmailFrom)
-	log.Println("---------------------------------------------")
 
 	//connecting to the database
 	db.ConnectToDB()
@@ -82,7 +62,8 @@ func main() {
 
 	corsHandler := handlers.CORS(allowedOrigins, allowedMethods, allowedHeaders, allowedCredentials)
 
-	port := ":8000"
+	// 6. Start the server USING the loaded configuration
+	port := ":" + config.Cfg.Server.PORT
 	log.Printf("Server is running on http://localhost%s\n", port)
 	if err := http.ListenAndServe(port, corsHandler(r)); err != nil {
 		log.Fatal("ListenAndServe:", err)

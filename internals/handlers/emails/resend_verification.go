@@ -1,14 +1,17 @@
 package emails
 
 import (
-	"chat-server/internals/config"
-	"chat-server/internals/db"
-	"chat-server/internals/utils"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 
+	// internals
+	"chat-server/internals/config"
+	"chat-server/internals/db"
+	"chat-server/internals/utils"
+
+	//libraries
 	// "github.com/gohugoio/hugo/config"
 	"gorm.io/gorm"
 )

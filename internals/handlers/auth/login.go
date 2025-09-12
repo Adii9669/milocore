@@ -1,13 +1,16 @@
 package auth
 
 import (
-	"chat-server/internals/db"
-	"chat-server/internals/utils"
 	"encoding/json"
 	"net/http"
 	"os"
 	"strings"
 
+	//internals
+	"chat-server/internals/db"
+	"chat-server/internals/utils"
+
+	//libraries
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )

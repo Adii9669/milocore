@@ -1,89 +1,51 @@
 package config
 
 import (
-	"fmt"
-	"os"
+	"log"
+	//libraries
+	"github.com/caarlos0/env/v6" //for parsing the env file
+	"github.com/joho/godotenv"   //To load up the .env file at start
 )
 
-// AppConfig holds the application's configuration in a structured way.
-type AppConfig struct {
-	Server   ServerConfig
-	Email    EmailConfig
-	Database DatabaseConfig
-	Token    TokenConfig
-}
-
-// ServerConfig holds server-specific settings.
-type ServerConfig struct {
-	APIBaseURL string
-}
-
-// EmailConfig holds all settings for the email service.
-type EmailConfig struct {
-	SMTPHost  string
-	SMTPPort  string
-	SMTPUser  string
-	SMTPPass  string
-	EmailFrom string
-}
-
-// DatabaseConfig holds the database connection string.
-type DatabaseConfig struct {
-	URL string
-}
-
-// TokenConfig holds the secret for JWT/JWE tokens.
-type TokenConfig struct {
-	Secret string
-}
-
-// Cfg is the global, accessible configuration instance.
 var Cfg AppConfig
 
-// LoadConfig reads environment variables and populates the Cfg struct.
-// It should be called once at application startup.
+type AppConfig struct {
+	Server struct {
+		APIBaseURL string `env:"API_BASE_URL"`
+		// Use a string for PORT, and provide a default for easy local dev
+		PORT string `env:"PORT" envDefault:"8000"`
+	}
+
+	// EmailConfig holds all settings for the email service.
+	Email struct {
+		SMTPHost  string `env:"SMTP_HOST,required"`
+		SMTPPort  string `env:"SMTP_PORT,required"`
+		SMTPUser  string `env:"SMTP_USER,required"`
+		SMTPPass  string `env:"SMTP_PASS,required"`
+		EmailFrom string `env:"EMAIL_FROM,required"`
+	}
+
+	// DatabaseConfig holds the database connection string.
+	Database struct {
+		URL string `env:"DATABASE_URL,required"`
+	}
+
+	// TokenConfig holds the secret for JWT/JWE tokens.
+	Token struct {
+		Secret string `env:"TOKEN_KEY,required"`
+	}
+}
+
 func LoadConfig() error {
-	getEnv := func(key string) (string, error) {
-		value := os.Getenv(key)
-		if value == "" {
-			return "", fmt.Errorf("environment variable %s not set", key)
-		}
-		return value, nil
+
+	//Load the .env file here
+	if err := godotenv.Load(); err != nil {
+		log.Println("No .env file FOUND, reading env")
 	}
 
-	var err error
-
-	// --- Load Server Config ---
-	if Cfg.Server.APIBaseURL, err = getEnv("API_BASE_URL"); err != nil {
+	//parse env in the strcut i created
+	if err := env.Parse(&Cfg); err != nil {
 		return err
 	}
-
-	// --- Load Database Config ---
-	if Cfg.Database.URL, err = getEnv("DATABASE_URL"); err != nil {
-		return err
-	}
-
-	// --- Load Token Config ---
-	if Cfg.Token.Secret, err = getEnv("TOKEN_KEY"); err != nil {
-		return err
-	}
-
-	// --- Load Email Config ---
-	if Cfg.Email.SMTPHost, err = getEnv("SMTP_HOST"); err != nil {
-		return err
-	}
-	if Cfg.Email.SMTPPort, err = getEnv("SMTP_PORT"); err != nil {
-		return err
-	}
-	if Cfg.Email.SMTPUser, err = getEnv("SMTP_USER"); err != nil {
-		return err
-	}
-	if Cfg.Email.SMTPPass, err = getEnv("SMTP_PASS"); err != nil {
-		return err
-	}
-	if Cfg.Email.EmailFrom, err = getEnv("EMAIL_FROM"); err != nil {
-		return err
-	}
-
 	return nil
 }

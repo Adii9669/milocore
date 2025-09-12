@@ -1,11 +1,13 @@
 package auth
 
 import (
+	"encoding/json"
+	"net/http"
+
+	//internals
 	"chat-server/internals/db"
 	"chat-server/internals/utils"
 	"chat-server/middleware"
-	"encoding/json"
-	"net/http"
 )
 
 func MeHandler(w http.ResponseWriter, r *http.Request) {

@@ -1,10 +1,13 @@
 package emails
 
 import (
-	"chat-server/internals/db"
-	"chat-server/internals/utils"
 	"net/http"
 
+	//internals
+	"chat-server/internals/db"
+	"chat-server/internals/utils"
+
+	//libraries
 	"gorm.io/gorm"
 )
 
