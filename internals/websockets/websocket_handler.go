@@ -29,7 +29,7 @@ var upgrader = websocket.Upgrader{
 // serveWs handles a WebSocket request from a client.
 func ServeWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 
-	claims, ok := r.Context().Value(middleware.UserContextKey).(*utils.Claims)
+	claims, ok := r.Context().Value(middleware.UserContextKey).(*utils.JWTClaims)
 	if !ok {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
@@ -46,7 +46,7 @@ func ServeWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 		hub:    hub,
 		conn:   conn,
 		send:   make(chan Message),
-		UserID: claims.Sub,
+		UserID: claims.Subject,
 	}
 
 	hub.register <- client

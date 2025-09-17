@@ -42,17 +42,15 @@ func main() {
 	apiRouter.HandleFunc("/login", auth.LoginHandler).Methods("POST")
 	apiRouter.HandleFunc("/verify", emails.VerifyEmailHandler).Methods("GET")
 	apiRouter.HandleFunc("/resend-verification", emails.ResendVerificationHandler).Methods("POST")
+	apiRouter.HandleFunc("/check-availability", auth.CheckAvailablityHandler).Methods("POST")
 
 	//Protected Routes
-	secureRouter := api.PathPrefix("/").Subrouter()
-	secureRouter.Use(middleware.MuxAdapter(middleware.AuthMiddleware()))
+	protectedRouter := r.PathPrefix("/").Subrouter()
+	protectedRouter.Use(middleware.AuthMiddleware)
 
-	//protecting the websockets routes
-	//now the api will check it throught AuthMiddleware
-	secureRouter.HandleFunc("/me", auth.MeHandler).Methods("GET")
-	secureRouter.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-		websockets.ServeWs(hub, w, r)
-	})
+	//use
+	protectedRouter.HandleFunc("/me", auth.MeHandler).Methods("GET")
+	protectedRouter.HandleFunc("/logout", auth.LogoutHandler).Methods("POST")
 
 	// CORS Configuration
 	allowedOrigins := handlers.AllowedOrigins([]string{"http://localhost:3000"})

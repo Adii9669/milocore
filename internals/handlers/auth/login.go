@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"os"
+	"regexp"
 	"strings"
 
 	//internals
@@ -22,8 +23,15 @@ func writeJSONError(w http.ResponseWriter, message string, statusCode int) {
 	json.NewEncoder(w).Encode(map[string]string{"message": message})
 }
 
+// email validation
+var emailRegex = regexp.MustCompile("^[a-zA-Z0-9.!#$%^&*+\\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
+
+func isEmail(e string) bool {
+	return emailRegex.MatchString(e)
+}
+
 type Credentials struct {
-	Email    string `json:"email"`
+	Username string `json:"username"`
 	Password string `json:"password"`
 }
 
@@ -38,17 +46,25 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//validate the data
-	req.Email = strings.TrimSpace(req.Email)
-	if req.Email == "" || req.Password == "" {
-		writeJSONError(w, "Check the Emapty Feilds.", http.StatusBadRequest)
+	req.Username = strings.TrimSpace(req.Username)
+	if req.Username == "" || req.Password == "" {
+		writeJSONError(w, "Check the Empty Feilds.", http.StatusBadRequest)
 		return
 	}
 
-	//find the user
+	//find the user or the email
 	var user db.User
-	if err := db.DB.Where("email = ?", req.Email).First(&user).Error; err != nil {
+	var err error
+
+	if isEmail(req.Username) {
+		err = db.DB.Where("email = ?", req.Username).First(&user).Error
+	} else {
+		err = db.DB.Where("name = ?", req.Username).First(&user).Error
+	}
+
+	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			writeJSONError(w, "Record Not Found.", http.StatusUnauthorized)
+			writeJSONError(w, "Invalid Credentials", http.StatusUnauthorized)
 		} else {
 			writeJSONError(w, "Database Error", http.StatusInternalServerError)
 		}
@@ -61,10 +77,12 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	//check if the user is verified or not
 	if !user.Verified {
 		w.WriteHeader(http.StatusForbidden)
 		json.NewEncoder(w).Encode(map[string]string{
-			"error": "Account not verified. Please check your email to complete registration.",
+			"error":  "Account not verified. Please check your email to complete registration.",
+			"status": "unverified",
 		})
 		return
 	}
@@ -93,9 +111,10 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]any{
 		"message": "Logged In Successfully",
 		"user": map[string]any{
-			"id":    user.ID,
-			"name":  user.Name,
-			"email": user.Email,
+			"id":     user.ID,
+			"name":   user.Name,
+			"email":  user.Email,
+			"status": "verified",
 		},
 	})
 }

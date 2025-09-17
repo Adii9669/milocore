@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"time"
 
@@ -17,16 +18,15 @@ type JWTClaims struct {
 func GenerateToken(userId string, name string) (string, error) {
 	//take the token key
 	jwtkey := []byte(os.Getenv("TOKEN_KEY"))
+
+	log.Println("GENERATING TOKEN WITH KEY:", string(jwtkey)) // Add this line
 	if len(jwtkey) == 0 {
 		return "", fmt.Errorf("JWT_SECRET_KEY environment variable not set")
 	}
-
 	// Create the claims for the token.
 	claims := JWTClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
-			// 'Subject' is the standard claim for the user's unique identifier.
-			Subject: userId,
-			// 'ExpiresAt' is the standard claim for the token's expiration time.
+			Subject:   userId,
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
 		},
 		Name: name,
@@ -51,6 +51,7 @@ func ValidateToken(tokenString string) (*JWTClaims, error) {
 
 	//get the key
 	jwtKey := []byte(os.Getenv("TOKEN_KEY"))
+	log.Println("GENERATING TOKEN WITH KEY:", string(jwtKey)) // Add this line
 	if len(jwtKey) == 0 {
 		return nil, fmt.Errorf("KEY env not set")
 	}
