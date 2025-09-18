@@ -2,7 +2,6 @@ package utils
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"time"
 
@@ -12,14 +11,14 @@ import (
 // Claims defines the structure of the data inside the token.
 type JWTClaims struct {
 	jwt.RegisteredClaims
-	Name string `json:"name"`
+	Username string `json:"name"`
 }
 
 func GenerateToken(userId string, name string) (string, error) {
 	//take the token key
 	jwtkey := []byte(os.Getenv("TOKEN_KEY"))
 
-	log.Println("GENERATING TOKEN WITH KEY:", string(jwtkey)) // Add this line
+	// log.Println("GENERATING TOKEN WITH KEY:", string(jwtkey)) // Add this line
 	if len(jwtkey) == 0 {
 		return "", fmt.Errorf("JWT_SECRET_KEY environment variable not set")
 	}
@@ -29,7 +28,7 @@ func GenerateToken(userId string, name string) (string, error) {
 			Subject:   userId,
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
 		},
-		Name: name,
+		Username: name,
 	}
 
 	//create token
@@ -51,7 +50,7 @@ func ValidateToken(tokenString string) (*JWTClaims, error) {
 
 	//get the key
 	jwtKey := []byte(os.Getenv("TOKEN_KEY"))
-	log.Println("GENERATING TOKEN WITH KEY:", string(jwtKey)) // Add this line
+	// log.Println("GENERATING TOKEN WITH KEY:", string(jwtKey)) // Add this line
 	if len(jwtKey) == 0 {
 		return nil, fmt.Errorf("KEY env not set")
 	}

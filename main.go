@@ -51,6 +51,9 @@ func main() {
 	//use
 	protectedRouter.HandleFunc("/me", auth.MeHandler).Methods("GET")
 	protectedRouter.HandleFunc("/logout", auth.LogoutHandler).Methods("POST")
+	protectedRouter.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
+		websockets.ServeWs(hub, w, r)
+	})
 
 	// CORS Configuration
 	allowedOrigins := handlers.AllowedOrigins([]string{"http://localhost:3000"})

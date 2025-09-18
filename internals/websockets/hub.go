@@ -1,6 +1,8 @@
 package websockets
 
-import "log"
+import (
+	"log"
+)
 
 type Message struct {
 	Username string `json:"username"`
@@ -29,10 +31,12 @@ func (h *Hub) Run() {
 
 	for {
 		select {
+		//register the client on the websocket
 		case client := <-h.register:
 			h.clients[client] = true
 			log.Println("A new client is connected . Total clients are = ", len(h.clients))
 
+			//for unregistering the client from the clients channel
 		case client := <-h.unregister:
 			if _, ok := h.clients[client]; ok {
 				delete(h.clients, client)
@@ -40,6 +44,7 @@ func (h *Hub) Run() {
 				log.Println("A client has disconnected ", len(h.clients))
 			}
 
+			//for messages broadcasting
 		case message := <-h.broadcast:
 			for client := range h.clients {
 				select {

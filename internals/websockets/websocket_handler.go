@@ -4,18 +4,27 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"regexp"
 
+	"chat-server/internals/db"
 	"chat-server/internals/utils"
 	"chat-server/middleware"
 
 	"github.com/gorilla/websocket"
 )
 
+var emailRegex = regexp.MustCompile(`^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,4}$`)
+
+type IncomingMessage struct {
+	Content string `json:"content"`
+}
+
 type Client struct {
-	hub    *Hub
-	conn   *websocket.Conn
-	send   chan Message
-	UserID string
+	hub      *Hub
+	conn     *websocket.Conn
+	send     chan Message
+	UserID   string `json:"userId"`
+	Username string `json:"username"`
 }
 
 var upgrader = websocket.Upgrader{
@@ -29,13 +38,40 @@ var upgrader = websocket.Upgrader{
 // serveWs handles a WebSocket request from a client.
 func ServeWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 
+	//get the details of the user who connected to it
 	claims, ok := r.Context().Value(middleware.UserContextKey).(*utils.JWTClaims)
+
 	if !ok {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	log.Printf("Connecting the %s...", claims.Name)
+	var user db.User
+	var err error
+
+	identifier := claims.Username
+
+	if emailRegex.MatchString(identifier) {
+		log.Printf("DEBUG: Identifier '%s' is an email. Searching DB by email.", identifier)
+
+		if result := db.DB.First(&user, "email = ?", identifier); result.Error != nil {
+			err = result.Error
+		}
+	} else {
+		log.Printf("DEBUG: Identifier '%s' is a username. Searching DB by username.", identifier)
+		// Otherwise, assume it's a username
+		if result := db.DB.First(&user, "username = ?", identifier); result.Error != nil {
+			err = result.Error
+		}
+	}
+
+	//check if the username happens to be nill or null we will not 
+	var username string
+	if user.Name != nil {
+		username = *user.Name
+	}
+
+	log.Printf("Connecting the %s...", claims.Username)
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println(err)
@@ -43,10 +79,11 @@ func ServeWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	}
 
 	client := &Client{
-		hub:    hub,
-		conn:   conn,
-		send:   make(chan Message),
-		UserID: claims.Subject,
+		hub:      hub,
+		conn:     conn,
+		send:     make(chan Message),
+		UserID:   user.ID,
+		Username: username,
 	}
 
 	hub.register <- client
@@ -90,10 +127,18 @@ func (c *Client) readPump() {
 			break
 		}
 
+		//unmarshall the content came from the frontend
+		var incomingMessage IncomingMessage
+		if err := json.Unmarshal(rawMessage, &incomingMessage); err != nil {
+			log.Printf("Error unmarshalling message: %v", err)
+			continue // Skip malformed messages
+		}
+
 		// FIX 3: Create a structured Message and send it to the hub.
 		message := Message{
-			Content: string(rawMessage),
-			UserID:  c.UserID,
+			UserID:   c.UserID,
+			Username: c.Username,
+			Content:  incomingMessage.Content,
 		}
 		c.hub.broadcast <- message
 	}

@@ -2,7 +2,6 @@ package auth
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	//internals
@@ -15,7 +14,6 @@ func MeHandler(w http.ResponseWriter, r *http.Request) {
 
 	//1.Get the user from context
 	claims, ok := r.Context().Value(middleware.UserContextKey).(*utils.JWTClaims)
-	fmt.Println("me handler  claims --------", claims)
 	if !ok {
 		http.Error(w, "Could not retrive the data from the Context ", http.StatusInternalServerError)
 		return
