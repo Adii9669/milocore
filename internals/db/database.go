@@ -1,6 +1,7 @@
 package db
 
 import (
+	"chat-server/internals/db/models"
 	"log"
 	"os"
 
@@ -8,6 +9,7 @@ import (
 	"gorm.io/gorm"
 )
 
+// CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 var DB *gorm.DB
 
 func ConnectToDB() {
@@ -21,13 +23,20 @@ func ConnectToDB() {
 		log.Fatal("Failed to Connect to the DATABASE")
 	}
 	log.Println("DATABASE Connection sucessful.")
-	DB.AutoMigrate(&User{}, &Account{}, &Session{}, &Product{}, &Cart{}, &CartItem{})
+	DB.AutoMigrate(
+		&models.User{},
+		&models.Account{},
+		&models.Session{},
+		&models.Product{},
+		&models.Crew{},
+		&models.Message{},
+	)
 	log.Printf("Database migrated sucessfully")
 }
 
 // FindUserByID retrieves a user from the database by their ID.
-func FindUserByID(userID string) (*User, error) {
-	var user User
+func FindUserByID(userID string) (*models.User, error) {
+	var user models.User
 	// Use GORM's .First() method to find the record.
 	// "id = ?" is a secure way to query, preventing SQL injection.
 	result := DB.First(&user, "id = ?", userID)

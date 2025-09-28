@@ -8,7 +8,9 @@ import (
 	"chat-server/internals/config"
 	"chat-server/internals/db"
 	"chat-server/internals/handlers/auth"
+	"chat-server/internals/handlers/crews"
 	"chat-server/internals/handlers/emails"
+	"chat-server/internals/repository"
 	"chat-server/internals/websockets"
 	"chat-server/middleware"
 
@@ -27,6 +29,10 @@ func main() {
 	//connecting to the database
 	db.ConnectToDB()
 
+	//intializing the repo
+	userRepo := &repository.GormUserRepository{}
+	crewRepo := &repository.GormCrewRepository{}
+
 	//2. Create a websockets instance and run it
 	hub := websockets.NewHub()
 	go hub.Run()
@@ -38,9 +44,9 @@ func main() {
 
 	apiRouter := api.PathPrefix("/auth").Subrouter()
 	//Public routes
-	apiRouter.HandleFunc("/register", auth.RegisterHandler).Methods("POST")
-	apiRouter.HandleFunc("/login", auth.LoginHandler).Methods("POST")
-	apiRouter.HandleFunc("/verify", emails.VerifyEmailHandler).Methods("GET")
+	apiRouter.HandleFunc("/register", auth.RegisterHandler(userRepo)).Methods("POST")
+	apiRouter.HandleFunc("/login", auth.LoginHandler(userRepo)).Methods("POST")
+	apiRouter.HandleFunc("/verify-otp", auth.VerifyOtpHandler(userRepo)).Methods("POST")
 	apiRouter.HandleFunc("/resend-verification", emails.ResendVerificationHandler).Methods("POST")
 	apiRouter.HandleFunc("/check-availability", auth.CheckAvailablityHandler).Methods("POST")
 
@@ -49,6 +55,8 @@ func main() {
 	protectedRouter.Use(middleware.AuthMiddleware)
 
 	//use
+	protectedRouter.HandleFunc("/crews", crews.CreateCrewHandler(crewRepo)).Methods("POST")
+	protectedRouter.HandleFunc("/crews", crews.Getcrew(crewRepo)).Methods("GET")
 	protectedRouter.HandleFunc("/me", auth.MeHandler).Methods("GET")
 	protectedRouter.HandleFunc("/logout", auth.LogoutHandler).Methods("POST")
 	protectedRouter.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {

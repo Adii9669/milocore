@@ -17,28 +17,28 @@ const UserContextKey = contextKey("user_claims")
 // AuthMiddleware uses the standard signature for gorilla/mux: func(http.Handler) http.Handler
 func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		cookie, err := r.Cookie("token")
 
+		//1.check the cookies first for the user
+		cookie, err := r.Cookie("token")
 		if err != nil {
 			log.Printf("MIDDLEWARE ERROR: Cookie not found - %v", err)
 			http.Error(w, "Unauthorized: Missing Auth Cookies", http.StatusUnauthorized)
 			return
 		}
-		// log.Printf("MIDDLEWARE: Successfully found cookie named '%s'", cookie.Name)
 
+		//2.now when the cookies are present check the token we stored in it
 		tokenString := cookie.Value
-		// log.Println("Token middleware", tokenString)
 		claims, err := utils.ValidateToken(tokenString)
 		if err != nil {
 			http.Error(w, "Token Invalid or Expired", http.StatusUnauthorized)
 			return
 		}
-		// log.Printf("MIDDLEWARE: Successfully validated token. Setting claims in context: %+v", claims)
 
-		// Create a new context with the claims.
+		//3.Now the token is present the create the context with the claims
+		//From the details of that token and the context key you created
 		ctx := context.WithValue(r.Context(), UserContextKey, claims)
 
-		// This is the correct way to pass the modified request to the next handler.
+		//4.Pass the  modified request to the next handler.
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

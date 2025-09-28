@@ -34,6 +34,10 @@ type AppConfig struct {
 	Token struct {
 		Secret string `env:"TOKEN_KEY,required"`
 	}
+
+	CHECK_ENV struct {
+		ENV string `env:"APP_ENV"`
+	}
 }
 
 func LoadConfig() error {

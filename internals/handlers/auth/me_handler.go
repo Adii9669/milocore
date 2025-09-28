@@ -20,12 +20,8 @@ func MeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//2.Check the user you go from the key is in database or not
-	user, err := db.FindUserByID(claims.Subject)
+	user, err := db.FindUserByID(claims.UserID)
 	if err != nil {
-		http.Error(w, "Database Error", http.StatusInternalServerError)
-		return
-	}
-	if user == nil {
 		http.Error(w, "Can't Find the USer", http.StatusNotFound)
 		return
 	}
@@ -33,8 +29,12 @@ func MeHandler(w http.ResponseWriter, r *http.Request) {
 	//3.Response it with user information
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]any{
-		"id":    user.ID,
-		"name":  user.Name,
-		"email": user.Email,
+		"message": "User Details",
+		"user": map[string]any{
+			"id":     user.ID,
+			"name":   user.Name,
+			"email":  user.Email,
+			"status": "verified",
+		},
 	})
 }

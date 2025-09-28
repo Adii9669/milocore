@@ -2,6 +2,7 @@ package auth
 
 import (
 	"chat-server/internals/db"
+	"chat-server/internals/db/models"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -39,7 +40,7 @@ func CheckAvailablityHandler(w http.ResponseWriter, r *http.Request) {
 	// Build the dynamic query
 	var count int64
 	query := fmt.Sprintf("%s = ?", dbColumn)
-	db.DB.Model(&db.User{}).Where(query, req.Value).Count(&count)
+	db.DB.Model(&models.User{}).Where(query, req.Value).Count(&count)
 
 	w.Header().Set("Content-Type", "application/json")
 

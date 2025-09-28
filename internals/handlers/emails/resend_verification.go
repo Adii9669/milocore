@@ -9,6 +9,7 @@ import (
 	// internals
 	"chat-server/internals/config"
 	"chat-server/internals/db"
+	"chat-server/internals/db/models"
 	"chat-server/internals/utils"
 
 	//libraries
@@ -30,7 +31,7 @@ func ResendVerificationHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//check the user
-	var user db.User
+	var user models.User
 	if err := db.DB.Where("email = ?", req.Email).First(&user).Error; err != nil {
 
 		//this for security if the unauthorized get's the emails but data does not exist still we show sucess message
@@ -58,7 +59,7 @@ func ResendVerificationHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//5.Update the user with new token
-	user.VerifyToken = &newVerificationToken
+	user.VerifyOTP = &newVerificationToken
 	if err := db.DB.Save(&user).Error; err != nil {
 		http.Error(w, "Failed to update the record", http.StatusInternalServerError)
 		return

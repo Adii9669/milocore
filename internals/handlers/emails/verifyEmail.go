@@ -5,9 +5,11 @@ import (
 
 	//internals
 	"chat-server/internals/db"
+	"chat-server/internals/db/models"
 	"chat-server/internals/utils"
 
 	//libraries
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -21,7 +23,7 @@ func VerifyEmailHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//find the user in the db
-	var user db.User
+	var user models.User
 	result := db.DB.Where("verify_token = ? ", token).First(&user)
 	if result.Error != nil {
 		if result.Error == gorm.ErrRecordNotFound {
@@ -42,7 +44,13 @@ func VerifyEmailHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	jwtToken, err := utils.GenerateToken(user.ID, *user.Name)
+	//parsing the userID stored in string in jwt
+	userID, err := uuid.Parse(user.ID)
+	if err != nil {
+		http.Error(w, "In Valid User details ", http.StatusInternalServerError)
+	}
+
+	jwtToken, err := utils.GenerateToken(userID, *user.Name)
 	if err != nil {
 		http.Error(w, "Failed to generate token", http.StatusInternalServerError)
 		return

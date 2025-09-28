@@ -18,25 +18,25 @@ func SendVerificationEmail(to, url string) error {
 	smtpPass := config.Email.SMTPPass
 	emailFrom := config.Email.EmailFrom
 
-	if smtpHost == "" {
-		return fmt.Errorf("host")
-	}
-
-	if smtpUser == "" {
-		return fmt.Errorf("user")
-	}
-
-	if smtpPortStr == "" {
-		return fmt.Errorf("port")
-	}
-
-	if emailFrom == "" {
-		return fmt.Errorf("emai")
-	}
-
-	// if smtpHost == "" || smtpPortStr == "" || smtpUser == "" || smtpPass == "" || emailFrom == "" {
-	// 	return fmt.Errorf("SMTP configuration is incomplete. Please check environment variables")
+	// if smtpHost == "" {
+	// 	return fmt.Errorf("host")
 	// }
+	//
+	// if smtpUser == "" {
+	// 	return fmt.Errorf("user")
+	// }
+	//
+	// if smtpPortStr == "" {
+	// 	return fmt.Errorf("port")
+	// }
+	//
+	// if emailFrom == "" {
+	// 	return fmt.Errorf("email")
+	// }
+
+	if smtpHost == "" || smtpPortStr == "" || smtpUser == "" || smtpPass == "" || emailFrom == "" {
+		return fmt.Errorf("SMTP configuration is incomplete. Please check environment variables")
+	}
 
 	//changin the port from string to int
 	smtpPort, err := strconv.Atoi(smtpPortStr)
