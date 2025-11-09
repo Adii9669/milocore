@@ -38,6 +38,11 @@ type AppConfig struct {
 	CHECK_ENV struct {
 		ENV string `env:"APP_ENV"`
 	}
+
+	OAuth struct {
+		ClientID     string `env:"GOOGLE_OAUTH_CLIENT_ID"`
+		ClientSecret string `env:"GOOGLE_OAUTH_CLIENT_SECRET"`
+	}
 }
 
 func LoadConfig() error {

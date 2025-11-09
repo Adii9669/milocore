@@ -13,25 +13,38 @@ import (
 var DB *gorm.DB
 
 func ConnectToDB() {
-	var err error
 	dbe := os.Getenv("DATABASE_URL")
-	DB, err = gorm.Open(postgres.Open(dbe), &gorm.Config{
-		PrepareStmt: false,
-	})
+	runMigrations := os.Getenv("RUN_MIGRATIONS")
+	if dbe == "" {
+		log.Fatal("DATABASE_URL environment variable is not set")
+	}
+
+	// -- ConnectToDB Database ------
+	var err error
 	DB, err = gorm.Open(postgres.Open(dbe), &gorm.Config{})
 	if err != nil {
 		log.Fatal("Failed to Connect to the DATABASE")
 	}
 	log.Println("DATABASE Connection sucessful.")
-	DB.AutoMigrate(
-		&models.User{},
-		&models.Account{},
-		&models.Session{},
-		&models.Product{},
-		&models.Crew{},
-		&models.Message{},
-	)
-	log.Printf("Database migrated sucessfully")
+
+	//---Run AutoMigrate ---
+	if runMigrations == "true" {
+
+		if err := DB.AutoMigrate(
+			&models.User{},
+			&models.Account{},
+			&models.Session{},
+			&models.Product{},
+			&models.Crew{},
+			&models.Message{},
+		); err != nil {
+			log.Fatalf("Migration failed: %v", err)
+		}
+		log.Println("Database migration successful")
+	} else {
+
+		log.Println("-----Skiping the migration-------")
+	}
 }
 
 // FindUserByID retrieves a user from the database by their ID.

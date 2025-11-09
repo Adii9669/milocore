@@ -12,8 +12,7 @@ type Crew struct {
 	OwnerID   uuid.UUID `gorm:"type:uuid;not null"`
 	CreatedAt time.Time
 
-	//ristedaar (relation )
 	Owner    User      `gorm:"foreignKey:OwnerID"`
-	Members  []User    `gorm:"many2many:crew_members;"`
-	Messages []Message `gorm:"foreignKey:CrewID"`
+	Members  []User    `gorm:"many2many:crew_members;constraint:OnDelete:CASCADE;"`
+	Messages []Message `gorm:"foreignKey:CrewID;constraint:OnDelete:CASCADE;"`
 }

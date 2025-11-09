@@ -23,7 +23,7 @@ func CreateCrewHandler(repo repository.CrewRepository) http.HandlerFunc {
 		}
 
 		// ADD THIS LOG STATEMENT
-		log.Printf("DEBUG: GetCrewsHandler received UserID from token: '%s'", claims.UserID)
+		// log.Printf("DEBUG: GetCrewsHandler received UserID from token: '%s'", claims.UserID)
 		//2. Decode the body of the request
 		var req CreateCrewRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -47,7 +47,7 @@ func CreateCrewHandler(repo repository.CrewRepository) http.HandlerFunc {
 		}
 
 		//call the repo to save it
-		if err := repo.Create(newCrew); err != nil {
+		if err := repo.CreateCrew(newCrew); err != nil {
 			http.Error(w, "Failed to create the Crew", http.StatusInternalServerError)
 			return
 		}

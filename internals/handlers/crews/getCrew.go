@@ -5,7 +5,7 @@ import (
 	"chat-server/internals/utils"
 	"chat-server/middleware"
 	"encoding/json"
-	"log"
+	// "log"
 	"net/http"
 )
 
@@ -18,13 +18,22 @@ func Getcrew(repo repository.CrewRepository) http.HandlerFunc {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
-		log.Printf("DEBUG: Handling request for UserID: %s", claims.UserID)
+		// log.Printf("DEBUG: Handling request for UserID: %s", claims.UserID)
 
 		//2. check the user name from the details is that exist or not
 		crews, err := repo.FindForUser(claims.UserID)
-		log.Printf("USEr BY username %v", crews)
+		// log.Printf("USEr BY username %v", crews)
 		if err != nil {
 			http.Error(w, "Failed to retrive the Crew", http.StatusUnauthorized)
+			return
+		}
+
+		// 3. Handle empty result safely
+		if len(crews) == 0 {
+			// Always return an empty array instead of message
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode([]CrewResponse{})
 			return
 		}
 

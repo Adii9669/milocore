@@ -83,8 +83,8 @@ type User struct {
 	Accounts   []Account `gorm:"foreignKey:UserID"`
 	Sessions   []Session `gorm:"foreignKey:UserID"`
 	OwnedCrews []Crew    `gorm:"foreignKey:OwnerID"`
-	Crews      []Crew    `gorm:"many2many:crew_members;"`
-	Messages   []Message `gorm:"foreignKey:UserID"`
+	Crews      []Crew    `gorm:"many2many:crew_members;constraint:OnDelete:CASCADE;"`
+	Messages   []Message `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE;"`
 }
 
 // GetID should implement the interface by returning the user's ID.

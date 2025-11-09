@@ -59,7 +59,6 @@ func LoginHandler(userRepo repository.UserRepository) http.HandlerFunc {
 		} else {
 			user, err = userRepo.FindBYName(req.Username)
 		}
-
 		if err != nil {
 			if err == gorm.ErrRecordNotFound {
 				writeJSONError(w, "Invalid Credentials", http.StatusUnauthorized)
@@ -100,6 +99,14 @@ func LoginHandler(userRepo repository.UserRepository) http.HandlerFunc {
 
 		//only for production to secure the connection
 		isProduction := os.Getenv("APP_ENV") == "production"
+		sameSite := http.SameSiteLaxMode
+		secure := false
+
+		if isProduction {
+			// local dev, no HTTPS normally
+			sameSite = http.SameSiteNoneMode
+			secure = true
+		}
 		//7. Set and secure the token in the cookies
 		http.SetCookie(w, &http.Cookie{
 			Name:     "token",
@@ -107,8 +114,8 @@ func LoginHandler(userRepo repository.UserRepository) http.HandlerFunc {
 			Path:     "/",
 			MaxAge:   3600,
 			HttpOnly: true,
-			Secure:   isProduction,
-			SameSite: http.SameSiteLaxMode,
+			Secure:   secure,
+			SameSite: sameSite,
 		})
 
 		//7.Login Complete send back the response with the details
