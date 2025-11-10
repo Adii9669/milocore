@@ -55,7 +55,10 @@ func SetUpRouter(userRepo repository.UserRepository, crewRepo repository.CrewRep
 	})
 
 	// CORS Configuration
-	allowedOrigins := handlers.AllowedOrigins([]string{"http://localhost:3000"})
+	allowedOrigins := handlers.AllowedOrigins([]string{
+		"http://localhost:3000",
+		"https://milonext.onrender.com",
+	})
 	allowedMethods := handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"})
 	allowedHeaders := handlers.AllowedHeaders([]string{"X-Requested-With", "Content-Type", "Authorization"})
 	allowedCredentials := handlers.AllowCredentials()
