@@ -28,22 +28,24 @@ func ConnectToDB() {
 	log.Println("DATABASE Connection sucessful.")
 
 	//---Run AutoMigrate ---
-	if runMigrations == "true" {
+	if os.Getenv("APP_ENV") != "production" {
+		if runMigrations == "true" {
 
-		if err := DB.AutoMigrate(
-			&models.User{},
-			&models.Account{},
-			&models.Session{},
-			&models.Product{},
-			&models.Crew{},
-			&models.Message{},
-		); err != nil {
-			log.Fatalf("Migration failed: %v", err)
+			if err := DB.AutoMigrate(
+				&models.User{},
+				&models.Account{},
+				&models.Session{},
+				&models.Product{},
+				&models.Crew{},
+				&models.Message{},
+			); err != nil {
+				log.Fatalf("Migration failed: %v", err)
+			}
+			log.Println("Database migration successful")
+		} else {
+
+			log.Println("-----Skiping the migration-------")
 		}
-		log.Println("Database migration successful")
-	} else {
-
-		log.Println("-----Skiping the migration-------")
 	}
 }
 
