@@ -1,10 +1,12 @@
 package crews
 
 import (
+	"chat-server/internals/db/models"
 	"chat-server/internals/repository"
 	"chat-server/internals/utils"
 	"chat-server/middleware"
 	"encoding/json"
+
 	// "log"
 	"net/http"
 )
@@ -33,14 +35,14 @@ func Getcrew(repo repository.CrewRepository) http.HandlerFunc {
 			// Always return an empty array instead of message
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode([]CrewResponse{})
+			utils.PrettyJSON(w, []models.CrewResponse{})
 			return
 		}
 
 		//3.Iterate through the response you got and send only the required response
-		response := make([]CrewResponse, 0)
+		response := make([]models.CrewResponse, 0)
 		for _, crew := range crews {
-			response = append(response, CrewResponse{
+			response = append(response, models.CrewResponse{
 				ID:        crew.ID,
 				Name:      crew.Name,
 				OwnerID:   crew.OwnerID,

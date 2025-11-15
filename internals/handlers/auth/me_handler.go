@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"encoding/json"
 	"net/http"
 
 	//internals
@@ -28,7 +27,7 @@ func MeHandler(w http.ResponseWriter, r *http.Request) {
 
 	//3.Response it with user information
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]any{
+	utils.PrettyJSON(w, map[string]any{
 		"message": "User Details",
 		"user": map[string]any{
 			"id":     user.ID,

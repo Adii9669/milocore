@@ -4,7 +4,6 @@ import (
 	"chat-server/internals/repository"
 	"chat-server/internals/utils"
 	"chat-server/middleware"
-	"encoding/json"
 	"log"
 	"net/http"
 
@@ -54,6 +53,6 @@ func DeleteCrewHandler(repo repository.CrewRepository) http.HandlerFunc {
 
 		// 5. Success
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]any{"success": true})
+		utils.PrettyJSON(w, map[string]any{"success": true})
 	}
 }

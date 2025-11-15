@@ -3,16 +3,29 @@ package main
 import (
 	"log"
 	"net/http"
+	"time"
 
 	//my packages
 	"chat-server/internals/config"
 	"chat-server/internals/db"
 	"chat-server/internals/repository"
+	"chat-server/internals/utils"
 	"chat-server/internals/websockets"
 	"chat-server/router"
 )
 
+func StartCleanupScheduler() {
+	go func() {
+		for {
+			utils.CleanupUnverifiedUsers()
+			time.Sleep(24 * time.Hour) // run once a day
+		}
+	}()
+}
+
 func main() {
+
+	StartCleanupScheduler()
 
 	//Load the config
 	if err := config.LoadConfig(); err != nil {
