@@ -87,9 +87,8 @@ func VerifyOtpHandler(userRepo repository.UserRepository) http.HandlerFunc {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(map[string]any{
-			"message": "Account verified successfully.",
-			"token":   tokenString,
-			"user":    user,
+			"message":  "Account verified successfully.",
+			"Verified": user.Verified,
 		})
 	}
 }

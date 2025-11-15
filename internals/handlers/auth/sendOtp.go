@@ -2,33 +2,17 @@ package auth
 
 import (
 	"chat-server/internals/config"
-	"crypto/rand"
+	"chat-server/internals/utils"
 	"fmt"
 	"log"
-	"math/big"
 	"strconv"
 
 	"gopkg.in/gomail.v2"
 )
 
-func generateOtp() (string, error) {
-	const otpLength = 6
-	var otp string
-	for i := 0; i < otpLength; i++ {
-		digit, err := rand.Int(rand.Reader, big.NewInt(10))
-		if err != nil {
-			// Handle the error, as rand.Int can return one
-			return "", err
-		}
-
-		otp += digit.String()
-	}
-	return otp, nil
-}
-
 func SendOTP(toEmail string) (string, error) {
 
-	otp, err := generateOtp()
+	otp, err := utils.GenerateOtp()
 	if err != nil {
 		return "", fmt.Errorf("failed to generateOtp: %w", err)
 	}

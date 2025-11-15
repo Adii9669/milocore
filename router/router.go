@@ -7,7 +7,6 @@ import (
 	//my packages
 	"chat-server/internals/handlers/auth"
 	"chat-server/internals/handlers/crews"
-	"chat-server/internals/handlers/emails"
 	"chat-server/internals/repository"
 	"chat-server/internals/websockets"
 	"chat-server/middleware"
@@ -29,7 +28,6 @@ func SetUpRouter(userRepo repository.UserRepository, crewRepo repository.CrewRep
 	apiRouter.HandleFunc("/register", auth.RegisterHandler(userRepo)).Methods("POST")
 	apiRouter.HandleFunc("/login", auth.LoginHandler(userRepo)).Methods("POST")
 	apiRouter.HandleFunc("/verify-otp", auth.VerifyOtpHandler(userRepo)).Methods("POST")
-	apiRouter.HandleFunc("/resend-verification", emails.ResendVerificationHandler).Methods("POST")
 	apiRouter.HandleFunc("/check-availability", auth.CheckAvailablityHandler).Methods("POST")
 
 	//Protected Routes

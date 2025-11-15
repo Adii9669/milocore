@@ -35,7 +35,6 @@ func ConnectToDB() {
 				&models.User{},
 				&models.Account{},
 				&models.Session{},
-				&models.Product{},
 				&models.Crew{},
 				&models.Message{},
 			); err != nil {
