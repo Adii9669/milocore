@@ -25,8 +25,6 @@ func StartCleanupScheduler() {
 
 func main() {
 
-	StartCleanupScheduler()
-
 	//Load the config
 	if err := config.LoadConfig(); err != nil {
 		log.Printf("Error loading Config file %v", err)
@@ -35,6 +33,7 @@ func main() {
 	//connecting to the database
 	db.ConnectToDB()
 
+	StartCleanupScheduler()
 	//intializing the repo
 	//this is for the direct use when don't want any dependnicy injection in your program
 	// userRepo := &repository.GormUserRepository{}
