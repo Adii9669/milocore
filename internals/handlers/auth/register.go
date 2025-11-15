@@ -123,9 +123,9 @@ func RegisterHandler(userRepo repository.UserRepository) http.HandlerFunc {
 		}
 
 		//success response
-		w.WriteHeader(http.StatusCreated)
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{
+		w.WriteHeader(http.StatusCreated)
+		utils.PrettyJSON(w, map[string]any{
 			"message": "Registration successful. Please check your email to verify your account.",
 			"email":   *newUser.Email,
 		})

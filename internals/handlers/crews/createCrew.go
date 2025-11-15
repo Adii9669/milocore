@@ -25,7 +25,7 @@ func CreateCrewHandler(repo repository.CrewRepository) http.HandlerFunc {
 		// ADD THIS LOG STATEMENT
 		// log.Printf("DEBUG: GetCrewsHandler received UserID from token: '%s'", claims.UserID)
 		//2. Decode the body of the request
-		var req CreateCrewRequest
+		var req models.CreateCrewRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			http.Error(w, "Invalid Body Request", http.StatusBadRequest)
 			return
@@ -52,7 +52,7 @@ func CreateCrewHandler(repo repository.CrewRepository) http.HandlerFunc {
 			return
 		}
 
-		response := CrewResponse{
+		response := models.CrewResponse{
 			ID:        newCrew.ID,
 			Name:      newCrew.Name,
 			OwnerID:   newCrew.OwnerID,
@@ -62,6 +62,6 @@ func CreateCrewHandler(repo repository.CrewRepository) http.HandlerFunc {
 		//send sucess
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode(response)
+		utils.PrettyJSON(w, response)
 	}
 }

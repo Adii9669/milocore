@@ -3,6 +3,7 @@ package auth
 import (
 	"chat-server/internals/db"
 	"chat-server/internals/db/models"
+	"chat-server/internals/utils"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -46,5 +47,7 @@ func CheckAvailablityHandler(w http.ResponseWriter, r *http.Request) {
 
 	// If the count is 0, the value is available.
 	isAvailable := count == 0
-	json.NewEncoder(w).Encode(map[string]bool{"available": isAvailable})
+
+	utils.PrettyJSON(w,
+		map[string]bool{"available": isAvailable})
 }
