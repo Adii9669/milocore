@@ -120,7 +120,7 @@ func LoginHandler(userRepo repository.UserRepository) http.HandlerFunc {
 
 		//7.Login Complete send back the response with the details
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]any{
+		utils.PrettyJSON(w, map[string]any{
 			"message": "Logged In Successfully",
 			"user": map[string]any{
 				"id":     user.ID,

@@ -16,3 +16,14 @@ type Crew struct {
 	Members  []User    `gorm:"many2many:crew_members;constraint:OnDelete:CASCADE;"`
 	Messages []Message `gorm:"foreignKey:CrewID;constraint:OnDelete:CASCADE;"`
 }
+
+type CreateCrewRequest struct {
+	Name string `json:"name" binding:"required"`
+}
+
+type CrewResponse struct {
+	ID        uuid.UUID `json:"id"`
+	Name      string    `json:"name"`
+	OwnerID   uuid.UUID `json:"ownerId"`
+	CreatedAt time.Time `json:"createdAt"`
+}
