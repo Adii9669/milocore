@@ -7,6 +7,7 @@ import (
 	"github.com/joho/godotenv"   //To load up the .env file at start
 )
 
+// variable of type AppConfig struct
 var Cfg AppConfig
 
 type AppConfig struct {
