@@ -6,9 +6,9 @@ import (
 	"time"
 
 	//my packages
+	"chat-server/internals/app"
 	"chat-server/internals/config"
 	"chat-server/internals/db"
-	"chat-server/internals/repository"
 	"chat-server/internals/utils"
 	"chat-server/internals/websockets"
 	"chat-server/router"
@@ -31,23 +31,22 @@ func main() {
 	}
 
 	//connecting to the database
-	db.ConnectToDB()
+	database := db.ConnectToDB()
 
+	//3.clean UP
 	StartCleanupScheduler()
-	//intializing the repo
-	//this is for the direct use when don't want any dependnicy injection in your program
-	// userRepo := &repository.GormUserRepository{}
-	// crewRepo := &repository.GormCrewRepository{}
-	var userRepo repository.UserRepository = &repository.GormUserRepository{}
-	var crewRepo repository.CrewRepository = &repository.GormCrewRepository{}
 
-	//2. Create a websockets instance and run it
+	//4. Create a websockets instance and run it
 	hub := websockets.NewHub()
 	go hub.Run()
 
-	r := router.SetUpRouter(userRepo, crewRepo, hub)
+	cfg := &config.Cfg
 
-	// 3. Start the server USING the loaded configuration
+	//5.create app container (DI)
+	application := app.NewApp(database, hub, cfg)
+	r := router.SetUpRouter(application)
+
+	// 6. Start the server USING the loaded configuration
 	port := ":" + config.Cfg.Server.PORT
 	log.Printf("Server is running on http://localhost%s\n", port)
 	if err := http.ListenAndServe(port, r); err != nil {

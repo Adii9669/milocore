@@ -12,7 +12,8 @@ import (
 // CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 var DB *gorm.DB
 
-func ConnectToDB() {
+func ConnectToDB() *gorm.DB {
+
 	dbe := os.Getenv("DATABASE_URL")
 	runMigrations := os.Getenv("RUN_MIGRATIONS")
 	if dbe == "" {
@@ -37,6 +38,7 @@ func ConnectToDB() {
 				&models.Session{},
 				&models.Crew{},
 				&models.Message{},
+				&models.Friends{},
 			); err != nil {
 				log.Fatalf("Migration failed: %v", err)
 			}
@@ -46,23 +48,7 @@ func ConnectToDB() {
 			log.Println("-----Skiping the migration-------")
 		}
 	}
+	return DB
 }
 
 // FindUserByID retrieves a user from the database by their ID.
-func FindUserByID(userID string) (*models.User, error) {
-	var user models.User
-	// Use GORM's .First() method to find the record.
-	// "id = ?" is a secure way to query, preventing SQL injection.
-	result := DB.First(&user, "id = ?", userID)
-
-	if result.Error != nil {
-		// Check if the error is because the record was not found.
-		if result.Error == gorm.ErrRecordNotFound {
-			return nil, nil // Return nil, nil to indicate "not found" without an error.
-		}
-		// For any other database error, return the error.
-		return nil, result.Error
-	}
-
-	return &user, nil
-}
