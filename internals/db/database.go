@@ -44,10 +44,10 @@ func ConnectToDB() *gorm.DB {
 			}
 			log.Println("Database migration successful")
 		} else {
-
 			log.Println("-----Skiping the migration-------")
 		}
 	}
+
 	return DB
 }
 

@@ -1,6 +1,7 @@
 package friends
 
 import (
+	"chat-server/internals/requests"
 	"chat-server/internals/utils"
 	"chat-server/middleware"
 	"encoding/json"
@@ -26,9 +27,7 @@ func (h *FriendHandler) SendFrndRequest(w http.ResponseWriter, r *http.Request) 
 	}
 
 	//3.Decode the body with info required
-	var body struct {
-		FriendID uuid.UUID `json:"friendId"`
-	}
+	var body requests.FriendRequest
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		http.Error(w, "Invalid request Body", http.StatusBadRequest)
 		return

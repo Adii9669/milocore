@@ -1,6 +1,7 @@
 package friends
 
 import (
+	"chat-server/internals/requests"
 	"chat-server/internals/utils"
 	"chat-server/middleware"
 	"encoding/json"
@@ -27,26 +28,24 @@ func (h *FriendHandler) AcceptRequest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//2.Decode the Body and validate it
-	var body struct {
-		FriendReqID uuid.UUID `json:"friendID"`
-	}
+	var body requests.FriendRequest
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		http.Error(w, "Invalid Request", http.StatusBadRequest)
 		return
 	}
 
-	if body.FriendReqID == uuid.Nil {
+	if body.FriendID == uuid.Nil {
 		http.Error(w, "FriendRequest ID required", http.StatusBadRequest)
 		return
 	}
 
-	if body.FriendReqID == userID {
+	if body.FriendID == userID {
 		http.Error(w, "cannot accept your own request", http.StatusBadRequest)
 		return
 	}
 
 	//Ceck the status
-	rel, err := h.FrndRepo.FindRelation(body.FriendReqID, userID)
+	rel, err := h.FrndRepo.FindRelation(body.FriendID, userID)
 	if err != nil {
 		// If no row found: return 404
 		if errors.Is(err, gorm.ErrRecordNotFound) {

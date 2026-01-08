@@ -39,40 +39,41 @@ func SetUpRouter(app *app.App) http.Handler {
 	   PROTECTED ROUTES (AUTH REQUIRED)
 	--------------------------------------------------------- */
 
+	// Crew handlers for creating the instace for the repository for using
+	crewHandler := crews.NewCrewHandler(app.CrewRepo)
+	authHandler := auth.NewAuthHandler(app.UserRepo)
+	frndHandler := friends.NewFriendHandler(app.FriendRepo, authHandler.UserRepo)
+	messageHandler := messages.NewMessageHandler(app.MessageRepo)
+
 	//Protected Routes
 	protectedRouter := r.PathPrefix("/").Subrouter()
 	protectedRouter.Use(middleware.AuthMiddleware)
 
-	// Crew handlers
-	crewHandler := crews.NewCrewHandler(app.CrewRepo)
-	authHandler := auth.NewAuthHandler(app.UserRepo)
-
+	//Crew
 	protectedRouter.HandleFunc("/crews", crewHandler.CreateCrew).Methods("POST")
 	protectedRouter.HandleFunc("/crews", crewHandler.Getcrew).Methods("GET")
 	protectedRouter.HandleFunc("/crews/{id}", crewHandler.DeleteCrew).Methods("DELETE")
 	protectedRouter.HandleFunc("/me", authHandler.Me).Methods("GET")
-
-	//repo
-	// userRepo :
-	frndHandler := friends.NewFriendHandler(app.FriendRepo, authHandler.UserRepo)
 
 	//Friend
 	protectedRouter.HandleFunc("/friend/request", frndHandler.SendFrndRequest).Methods("POST")
 	protectedRouter.HandleFunc("/friend/accept", frndHandler.AcceptRequest).Methods("POST")
 
 	// Message handlers
-	messageHandler := messages.NewMessageHandler(app.MessageRepo)
 	protectedRouter.HandleFunc("/get-messages", messageHandler.GetMessage).Methods("GET")
+
+	//Conversation
+	// protectedRouter.HandleFunc("/chat/start", convHandler.StartConversation).Methods("POST")
 
 	//logout
 	protectedRouter.HandleFunc("/logout", auth.LogoutHandler).Methods("POST")
 
 	//websockets route
 	protectedRouter.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-		websockets.ServeWs(app.Hub, w, r)
+		websockets.ServeWS(app.Hub, w, r)
 	})
 
-	// DEBUG: show all registered rout
+	// DEBUG: show all registered routes
 	r.Walk(func(route *mux.Route, router *mux.Router, ancestors []*mux.Route) error {
 		path, _ := route.GetPathTemplate()
 		methods, _ := route.GetMethods()

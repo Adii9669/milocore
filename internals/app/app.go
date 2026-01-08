@@ -8,17 +8,22 @@ import (
 	"gorm.io/gorm"
 )
 
+// The App struct like a contract to create the app
 type App struct {
+	//Database and websockets(Hub)
 	DB  *gorm.DB
 	Hub *websockets.Hub
 
+	//Repositories for the app
 	UserRepo    repository.UserRepository
 	CrewRepo    repository.CrewRepository
 	MessageRepo repository.MessageRepository
 	FriendRepo  repository.FriendRepository
+	ConvRepo    repository.Conversation
 	Config      *config.AppConfig
 }
 
+// Constructor for the app
 func NewApp(
 	db *gorm.DB,
 	hub *websockets.Hub,
@@ -34,5 +39,6 @@ func NewApp(
 		CrewRepo:    repository.NewCrewRepository(),
 		MessageRepo: repository.NewMessageRepository(),
 		FriendRepo:  repository.NewFriendRepository(),
+		ConvRepo:    repository.NewConversation(),
 	}
 }

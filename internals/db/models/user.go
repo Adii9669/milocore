@@ -21,7 +21,7 @@ type User struct {
 	Sessions   []Session `gorm:"foreignKey:UserID"`
 	OwnedCrews []Crew    `gorm:"foreignKey:OwnerID"`
 	Crews      []Crew    `gorm:"many2many:crew_members;constraint:OnDelete:CASCADE;"`
-	Messages   []Message `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE;"`
+	// Messages   []Message `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE;"`
 }
 
 type Account struct {
