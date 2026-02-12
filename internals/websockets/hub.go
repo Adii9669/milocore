@@ -1,7 +1,7 @@
 package websockets
 
 import (
-	"encoding/json"
+	"chat-server/internals/services"
 	"log"
 )
 
@@ -15,7 +15,7 @@ type Hub struct {
 	crews map[string]map[*Client]bool
 
 	broadcast chan []byte
-	route     chan OutgoingMessage
+	route     chan *services.MessageResult
 }
 
 // here we are making those channels in the constructor
@@ -30,110 +30,9 @@ func NewHub() *Hub {
 		crews: make(map[string]map[*Client]bool),
 
 		broadcast: make(chan []byte, 256),
-		route:     make(chan OutgoingMessage),
+		route:     make(chan *services.MessageResult),
 	}
 
-}
-
-// helper function
-func (h *Hub) handleRegister(client *Client) {
-	// Track global clients
-	h.clients[client] = true
-
-	// Track per-user connections
-	if _, ok := h.users[client.userID]; !ok {
-		h.users[client.userID] = make(map[*Client]bool)
-	}
-	h.users[client.userID][client] = true
-}
-
-func (h *Hub) handleUnregister(client *Client) {
-	// Remove from global clients
-	if _, ok := h.clients[client]; ok {
-		// removing client from hub ke clients se
-		delete(h.clients, client)
-		close(client.send)
-	}
-
-	// Remove from user map
-	if userClients, ok := h.users[client.userID]; ok {
-		delete(userClients, client)
-		if len(userClients) == 0 {
-			delete(h.users, client.userID)
-		}
-	}
-
-	// Remove from all crews
-	for crewID := range client.crews {
-		if crewClients, ok := h.crews[crewID]; ok {
-			delete(crewClients, client)
-			if len(crewClients) == 0 {
-				delete(h.crews, crewID)
-			}
-		}
-	}
-}
-
-func (h *Hub) sendDirectMessage(msg OutgoingMessage) {
-	clients, ok := h.users[msg.ReceiverID]
-	if !ok {
-		return
-	}
-
-	data, err := json.Marshal(msg)
-	if err != nil {
-		return
-	}
-
-	for client := range clients {
-		select {
-		case client.send <- data:
-		default:
-			// client is slow or dead
-			h.unregister <- client
-		}
-	}
-}
-
-func (h *Hub) sendCrewMessage(msg OutgoingMessage) {
-	clients, ok := h.crews[msg.ReceiverID]
-	if !ok {
-		return
-	}
-
-	data, err := json.Marshal(msg)
-	if err != nil {
-		return
-	}
-
-	for client := range clients {
-		select {
-		case client.send <- data:
-		default:
-			h.unregister <- client
-		}
-	}
-}
-
-func (h *Hub) handleBroadcast(data []byte) {
-	for client := range h.clients {
-		select {
-		case client.send <- data:
-		default:
-			h.unregister <- client
-		}
-	}
-}
-
-func (h *Hub) handleMessage(msg OutgoingMessage) {
-	// We will route messages here later
-	switch msg.Type {
-	case "dm":
-		h.sendDirectMessage(msg)
-
-	case "crew":
-		h.sendCrewMessage(msg)
-	}
 }
 
 func (h *Hub) Run() {
@@ -144,9 +43,10 @@ func (h *Hub) Run() {
 
 			// DEBUG
 			log.Printf(
-				"[WS] client registered | total connections=%d | users=%d",
+				"[WS] client registered | total connections=%d | users=%d | userID=%s",
 				len(h.clients),
 				len(h.users),
+				client.userID,
 			)
 
 		case client := <-h.unregister:
@@ -160,9 +60,10 @@ func (h *Hub) Run() {
 			)
 
 		case msg := <-h.route:
-			h.handleMessage(msg)
+			h.routeMessage(msg)
 		case data := <-h.broadcast:
 			h.handleBroadcast(data)
+			log.Printf("incoming WS payload: %s", string(data))
 		}
 	}
 }

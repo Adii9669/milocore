@@ -15,7 +15,7 @@ var DB *gorm.DB
 func ConnectToDB() *gorm.DB {
 
 	dbe := os.Getenv("DATABASE_URL")
-	runMigrations := os.Getenv("RUN_MIGRATIONS")
+	// runMigrations := os.Getenv("RUN_MIGRATIONS")
 	if dbe == "" {
 		log.Fatal("DATABASE_URL environment variable is not set")
 	}
@@ -29,23 +29,20 @@ func ConnectToDB() *gorm.DB {
 	log.Println("DATABASE Connection sucessful.")
 
 	//---Run AutoMigrate ---
-	if os.Getenv("APP_ENV") != "production" {
-		if runMigrations == "true" {
-
-			if err := DB.AutoMigrate(
-				&models.User{},
-				&models.Account{},
-				&models.Session{},
-				&models.Crew{},
-				&models.Message{},
-				&models.Friends{},
-			); err != nil {
-				log.Fatalf("Migration failed: %v", err)
-			}
-			log.Println("Database migration successful")
-		} else {
-			log.Println("-----Skiping the migration-------")
+	if os.Getenv("APP_ENV") == "local" {
+		if err := DB.AutoMigrate(
+			&models.User{},
+			&models.Account{},
+			&models.Session{},
+			&models.Crew{},
+			&models.Message{},
+			&models.Friends{},
+		); err != nil {
+			log.Fatalf("Migration failed: %v", err)
 		}
+		log.Println("Database migration successful")
+	} else {
+		log.Println("-----Skiping the migration-------")
 	}
 
 	return DB

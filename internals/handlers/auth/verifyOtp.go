@@ -3,13 +3,14 @@ package auth
 import (
 	"chat-server/internals/config"
 	"chat-server/internals/db"
-	"chat-server/internals/handlers"
 	"chat-server/internals/repository"
+	"chat-server/internals/requests"
 	"chat-server/internals/utils"
 	"encoding/json"
-	"github.com/google/uuid"
 	"log"
 	"net/http"
+
+	"github.com/google/uuid"
 
 	"gorm.io/gorm"
 )
@@ -18,7 +19,7 @@ func VerifyOtpHandler(userRepo repository.UserRepository) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		//take the request and check it
-		var req handlers.VerifyOtpRequest
+		var req requests.VerifyOtpRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			http.Error(w, "Invalid request body", http.StatusBadRequest)
 			return

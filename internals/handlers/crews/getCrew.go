@@ -1,7 +1,7 @@
 package crews
 
 import (
-	"chat-server/internals/responses"
+	"chat-server/internals/transport/dto"
 	"chat-server/internals/utils"
 	"chat-server/middleware"
 	"encoding/json"
@@ -33,14 +33,14 @@ func (h *CrewHandler) Getcrew(w http.ResponseWriter, r *http.Request) {
 		// Always return an empty array instead of message
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		utils.PrettyJSON(w, responses.CrewResponse{})
+		utils.PrettyJSON(w, dto.CrewResponse{})
 		return
 	}
 
 	//3.Iterate through the response you got and send only the required response
-	response := make([]responses.CrewResponse, 0)
+	response := make([]dto.CrewResponse, 0)
 	for _, crew := range crews {
-		response = append(response, responses.CrewResponse{
+		response = append(response, dto.CrewResponse{
 			ID:        crew.ID,
 			Name:      crew.Name,
 			OwnerID:   crew.OwnerID,

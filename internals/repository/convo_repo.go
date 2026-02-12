@@ -1,7 +1,6 @@
 package repository
 
 import (
-	"chat-server/internals/db"
 	"chat-server/internals/db/models"
 	"errors"
 
@@ -17,10 +16,12 @@ type Conversation interface {
 	SaveMessage(msg *models.Message) error
 }
 
-type convoRepository struct{}
+type convoRepository struct {
+	db *gorm.DB
+}
 
-func NewConversation() Conversation {
-	return &convoRepository{}
+func NewConversation(db *gorm.DB) Conversation {
+	return &convoRepository{db: db}
 }
 
 // helper function to avoid duplicate tables
@@ -37,7 +38,7 @@ func (r *convoRepository) FindConvBetween(a, b uuid.UUID) (*models.Conversation,
 
 	var convo models.Conversation
 
-	err := db.DB.Where("user1_id = ? and user2_id = ?", user1, user2).First(&convo).Error
+	err := r.db.Where("user1_id = ? and user2_id = ?", user1, user2).First(&convo).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
@@ -48,7 +49,7 @@ func (r *convoRepository) FindConvBetween(a, b uuid.UUID) (*models.Conversation,
 // FindBYID
 func (r *convoRepository) FindConvByID(id uuid.UUID) (*models.Conversation, error) {
 	var conv models.Conversation
-	err := db.DB.Where("id = ?", id).First(&conv).Error
+	err := r.db.Where("id = ?", id).First(&conv).Error
 
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
@@ -68,7 +69,7 @@ func (r *convoRepository) GetMessages(convID uuid.UUID, limit, offset int) ([]mo
 		limit = 200
 	}
 
-	err := db.DB.
+	err := r.db.
 		Where("conversation_id = ?", convID).
 		Order("created_at DESC").
 		Limit(limit).
@@ -81,5 +82,5 @@ func (r *convoRepository) GetMessages(convID uuid.UUID, limit, offset int) ([]mo
 // SaveMessage
 func (r *convoRepository) SaveMessage(msg *models.Message) error {
 	msg.ID = uuid.New()
-	return db.DB.Create(msg).Error
+	return r.db.Create(msg).Error
 }

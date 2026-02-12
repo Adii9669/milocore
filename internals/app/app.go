@@ -3,6 +3,7 @@ package app
 import (
 	"chat-server/internals/config"
 	"chat-server/internals/repository"
+	"chat-server/internals/services"
 	"chat-server/internals/websockets"
 
 	"gorm.io/gorm"
@@ -15,12 +16,14 @@ type App struct {
 	Hub *websockets.Hub
 
 	//Repositories for the app
-	UserRepo    repository.UserRepository
-	CrewRepo    repository.CrewRepository
-	MessageRepo repository.MessageRepository
-	FriendRepo  repository.FriendRepository
-	ConvRepo    repository.Conversation
-	Config      *config.AppConfig
+	UserRepo           repository.UserRepository
+	CrewRepo           repository.CrewRepository
+	MessageRepo        repository.MessageRepository
+	FriendRepo         repository.FriendRepository
+	ConvRepo           repository.Conversation
+	Config             *config.AppConfig
+	ChatHistoryService services.ChatHistroyService
+	MessageService     services.MessageService
 }
 
 // Constructor for the app
@@ -35,10 +38,15 @@ func NewApp(
 		Hub:    hub,
 		Config: cfg,
 
-		UserRepo:    repository.NewUserRepository(),
-		CrewRepo:    repository.NewCrewRepository(),
-		MessageRepo: repository.NewMessageRepository(),
-		FriendRepo:  repository.NewFriendRepository(),
-		ConvRepo:    repository.NewConversation(),
+		UserRepo:           repository.NewUserRepository(db),
+		CrewRepo:           repository.NewCrewRepository(db),
+		MessageRepo:        repository.NewMessageRepository(db),
+		FriendRepo:         repository.NewFriendRepository(db),
+		ConvRepo:           repository.NewConversation(db),
+		ChatHistoryService: services.NewChatHistoryService(repository.NewMessageRepository(db)),
+		MessageService: services.NewMessageService(
+			repository.NewMessageRepository(db),
+			repository.NewUserRepository(db),
+			repository.NewCrewRepository(db)),
 	}
 }

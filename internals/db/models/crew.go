@@ -24,3 +24,16 @@ type Crew struct {
 	Members  []User    `gorm:"many2many:crew_members;constraint:OnDelete:CASCADE;"`
 	Messages []Message `gorm:"foreignKey:CrewID;constraint:OnDelete:CASCADE;"`
 }
+
+type CrewMember struct {
+	ID     uuid.UUID `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()"`
+	CrewID uuid.UUID `gorm:"type:uuid;not null;index"`
+	UserID uuid.UUID `gorm:"type:uuid;not null;index"`
+
+	Role     string    `gorm:"not null;default:member"`
+	JoinedAt time.Time `gorm:"autoCreateTime"`
+	MutedTil *time.Time
+
+	Crew Crew `gorm:"foreignKey:CrewID"`
+	User User `gorm:"foreignKey:UserID"`
+}

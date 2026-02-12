@@ -1,95 +1,115 @@
 package router
 
 import (
-	"log"
-	"net/http"
-
-	//my packages
 	"chat-server/internals/app"
 	"chat-server/internals/handlers/auth"
+	"chat-server/internals/handlers/chathistory"
 	"chat-server/internals/handlers/crews"
 	"chat-server/internals/handlers/friends"
-	"chat-server/internals/handlers/messages"
 	"chat-server/internals/websockets"
 	"chat-server/middleware"
+	"log"
 
 	// go libraries
+	"net/http"
+
+	"github.com/go-chi/chi/v5"
+	chimw "github.com/go-chi/chi/v5/middleware"
 	"github.com/gorilla/handlers" //for the websockets connection
-	"github.com/gorilla/mux"      //Mux for the routing of private and public pages (user)
+	// "github.com/gorilla/mux"      //Mux for the routing of private and public pages (user)
 )
 
 func SetUpRouter(app *app.App) http.Handler {
 
 	//1. Set Up the Router
-	r := mux.NewRouter()
+	// r := mux.NewRouter()
+	r := chi.NewRouter()
+
+	/* ---------------------------------------------------------
+	   GLOBAL MIDDLEWARE
+	--------------------------------------------------------- */
+	r.Use(chimw.RequestID)
+	r.Use(chimw.RealIP)
+	r.Use(chimw.Logger)
+	r.Use(chimw.Recoverer)
 
 	/* ---------------------------------------------------------
 	   PUBLIC ROUTES (NO AUTH)
 	--------------------------------------------------------- */
 
-	api := r.PathPrefix("/api").Subrouter()
-	apiRouter := api.PathPrefix("/auth").Subrouter()
+	r.Route("/auth", func(r chi.Router) {
+		r.Post("/register", auth.RegisterHandler(app.UserRepo))
+		r.Post("/login", auth.LoginHandler(app.UserRepo))
+		r.Post("/verify-otp", auth.VerifyOtpHandler(app.UserRepo))
+		r.Post("/check-availability", auth.CheckAvailablityHandler)
 
-	apiRouter.HandleFunc("/register", auth.RegisterHandler(app.UserRepo)).Methods("POST")
-	apiRouter.HandleFunc("/login", auth.LoginHandler(app.UserRepo)).Methods("POST")
-	apiRouter.HandleFunc("/verify-otp", auth.VerifyOtpHandler(app.UserRepo)).Methods("POST")
-	apiRouter.HandleFunc("/check-availability", auth.CheckAvailablityHandler).Methods("POST")
+	})
 
 	/* ---------------------------------------------------------
 	   PROTECTED ROUTES (AUTH REQUIRED)
 	--------------------------------------------------------- */
 
-	// Crew handlers for creating the instace for the repository for using
+	// handlers for creating the instace for the repository for using
 	crewHandler := crews.NewCrewHandler(app.CrewRepo)
 	authHandler := auth.NewAuthHandler(app.UserRepo)
 	frndHandler := friends.NewFriendHandler(app.FriendRepo, authHandler.UserRepo)
-	messageHandler := messages.NewMessageHandler(app.MessageRepo)
+	chathistoryHandler := chathistory.NewHandler(app.ChatHistoryService)
 
 	//Protected Routes
-	protectedRouter := r.PathPrefix("/").Subrouter()
-	protectedRouter.Use(middleware.AuthMiddleware)
+	r.Route("/api", func(r chi.Router) {
+		r.Use(middleware.AuthMiddleware)
 
-	//Crew
-	protectedRouter.HandleFunc("/crews", crewHandler.CreateCrew).Methods("POST")
-	protectedRouter.HandleFunc("/crews", crewHandler.Getcrew).Methods("GET")
-	protectedRouter.HandleFunc("/crews/{id}", crewHandler.DeleteCrew).Methods("DELETE")
-	protectedRouter.HandleFunc("/me", authHandler.Me).Methods("GET")
+		// Crew
+		r.Post("/crews", crewHandler.CreateCrew)
+		r.Get("/crews", crewHandler.Getcrew)
+		r.Delete("/crew/{id}", crewHandler.DeleteCrew)
 
-	//Friend
-	protectedRouter.HandleFunc("/friend/request", frndHandler.SendFrndRequest).Methods("POST")
-	protectedRouter.HandleFunc("/friend/accept", frndHandler.AcceptRequest).Methods("POST")
+		// User
+		r.Get("/me", authHandler.Me)
 
-	// Message handlers
-	protectedRouter.HandleFunc("/get-messages", messageHandler.GetMessage).Methods("GET")
+		// Friend
+		r.Post("/friend/request", frndHandler.SendFrndRequest)
+		r.Post("/friend/accept", frndHandler.AcceptRequest)
+		r.Get("/friends", frndHandler.GetFriends)
 
-	//Conversation
-	// protectedRouter.HandleFunc("/chat/start", convHandler.StartConversation).Methods("POST")
+		// Chat
+		r.Get("/chats/crew/{crewId}", chathistoryHandler.GetCrewHistory)
+		r.Get("/chats/dm/{userId}", chathistoryHandler.GetDmHistory)
 
-	//logout
-	protectedRouter.HandleFunc("/logout", auth.LogoutHandler).Methods("POST")
+		// r.Poat
+		// WebSocket
+		r.Get("/ws", func(w http.ResponseWriter, r *http.Request) {
+			websockets.ServeWS(app.Hub, app.MessageService, w, r)
+		})
 
-	//websockets route
-	protectedRouter.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-		websockets.ServeWS(app.Hub, w, r)
+		// Logout
+		r.Post("/logout", auth.LogoutHandler)
 	})
 
 	// DEBUG: show all registered routes
-	r.Walk(func(route *mux.Route, router *mux.Router, ancestors []*mux.Route) error {
-		path, _ := route.GetPathTemplate()
-		methods, _ := route.GetMethods()
-		log.Printf("ROUTE: %v %v", methods, path)
+	// r.Walk(func(route *mux.Route, router *mux.Router, ancestors []*mux.Route) error {
+	// 	path, _ := route.GetPathTemplate()
+	// 	methods, _ := route.GetMethods()
+	// 	log.Printf("ROUTE: %v %v", methods, path)
+	// 	return nil
+	// })
+	chi.Walk(r, func(method, route string, handler http.Handler, middlewares ...func(http.Handler) http.Handler) error {
+		log.Printf("%s %s\n", method, route)
 		return nil
 	})
 
 	// CORS Configuration
-	allowedOrigins := handlers.AllowedOrigins([]string{
-		"http://localhost:3000",
-		"https://milonext.onrender.com",
-	})
-	allowedMethods := handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"})
-	allowedHeaders := handlers.AllowedHeaders([]string{"X-Requested-With", "Content-Type", "Authorization"})
-	allowedCredentials := handlers.AllowCredentials()
-
-	return handlers.CORS(allowedOrigins, allowedMethods, allowedHeaders, allowedCredentials)(r)
+	/* ---------------------------------------------------------
+	   CORS
+	--------------------------------------------------------- */
+	return handlers.CORS(
+		handlers.AllowedOrigins([]string{
+			"http://localhost:3000",
+			"https://milonext.onrender.com",
+		}),
+		handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}),
+		handlers.AllowedHeaders([]string{"X-Requested-With", "content-type", "Content-Type", "Authorization"}),
+		handlers.AllowCredentials(),
+	)(r)
 
 }

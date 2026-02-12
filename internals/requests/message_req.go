@@ -1,6 +1,11 @@
 package requests
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"time"
+
+	"github.com/google/uuid"
+)
 
 type IncomingEnvelope struct {
 	Action  string          `json:"action"` // e.g., "message"
@@ -13,4 +18,14 @@ type IncomingPayloadMessage struct {
 	ToUserID    *string `json:"to_user_id,omitempty"`
 	Content     string  `json:"content"`
 	ClientNonce *string `json:"client_nonce,omitempty"`
+}
+
+type MessageResponse struct {
+	ID         uuid.UUID `json:"ID"`
+	SenderID   string    `json:"SenderID"`
+	SenderName string    `json:"SenderName"` // Add this for frontend
+	ReceiverID *string   `json:"ReceiverID,omitempty"`
+	CrewID     *string   `json:"CrewID,omitempty"`
+	Content    *string   `json:"Content"`
+	CreatedAt  time.Time `json:"CreatedAt"`
 }

@@ -1,8 +1,9 @@
 package repository
 
 import (
-	"chat-server/internals/db"
 	"chat-server/internals/db/models"
+	"chat-server/internals/transport/dto"
+	"fmt"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -13,14 +14,16 @@ type FriendRepository interface {
 	AcceptRequest(rel *models.Friends) error
 	FindRelation(userID, freindID uuid.UUID) (*models.Friends, error)
 	CreateReverseAccepted(userID, friendID uuid.UUID) error
-	GetFriends(userID uuid.UUID) ([]models.Friends, error)
+	GetFriend(userID uuid.UUID) ([]dto.FriendResponse, error)
 	AcceptAndCreateReverse(rel *models.Friends, accepterID uuid.UUID) error
 }
 
-type friendRepository struct{}
+type friendRepository struct {
+	db *gorm.DB
+}
 
-func NewFriendRepository() FriendRepository {
-	return &friendRepository{}
+func NewFriendRepository(db *gorm.DB) FriendRepository {
+	return &friendRepository{db: db}
 }
 
 func (r *friendRepository) SendRequest(userID, friendID uuid.UUID) error {
@@ -31,14 +34,14 @@ func (r *friendRepository) SendRequest(userID, friendID uuid.UUID) error {
 		FriendID: friendID,
 		Status:   "pending",
 	}
-	return db.DB.Create(&friend).Error
+	return r.db.Create(&friend).Error
 }
 
 func (r *friendRepository) FindRelation(userID, frndID uuid.UUID) (*models.Friends, error) {
 
 	var rel models.Friends
 
-	err := db.DB.Where("user_id = ? AND friend_id = ? ", userID, frndID).First(&rel).Error
+	err := r.db.Where("user_id = ? AND friend_id = ? ", userID, frndID).First(&rel).Error
 
 	return &rel, err
 }
@@ -49,7 +52,7 @@ func (r *friendRepository) AcceptRequest(rel *models.Friends) error {
 		This updates the existing database row.
 	*/
 	rel.Status = "accepted"
-	return db.DB.Save(rel).Error
+	return r.db.Save(rel).Error
 }
 
 func (r *friendRepository) CreateReverseAccepted(userID, friendID uuid.UUID) error {
@@ -61,31 +64,31 @@ func (r *friendRepository) CreateReverseAccepted(userID, friendID uuid.UUID) err
 		Status:   "accepted",
 	}
 
-	return db.DB.Create(&rev).Error
+	return r.db.Create(&rev).Error
 }
 
 // -------------------------------------------------------------
-func (r *friendRepository) GetFriends(userID uuid.UUID) ([]models.Friends, error) {
-	var friends []models.Friends
+func (r *friendRepository) GetFriend(userID uuid.UUID) ([]dto.FriendResponse, error) {
+	var friends []dto.FriendResponse
 
-	/*
-		This returns rows like:
-		userID → friendID
-		where status = 'accepted'
-
-		This gives all users that THIS user is friends with.
-	*/
-
-	err := db.DB.
-		Where("user_id = ? AND status = 'accepted'", userID).
-		Find(&friends).Error
-
+	err := r.db.
+		Table("friends").
+		Select(`
+			users.id AS id,
+			users.name AS name,
+			friends.status AS status,
+			friends.created_at AS created_at
+		`).
+		Joins("JOIN users ON users.id = friends.friend_id").
+		Where("friends.user_id = ? AND friends.status = 'accepted'", userID).
+		Scan(&friends).Error
+	fmt.Printf("%+v\n", friends)
 	return friends, err
 }
 
 func (r *friendRepository) AcceptAndCreateReverse(rel *models.Friends, accepterID uuid.UUID) error {
 	// run everything inside a transaction
-	return db.DB.Transaction(func(tx *gorm.DB) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
 
 		// 1) Update the existing relation (A -> B) to accepted.
 		rel.Status = "accepted"

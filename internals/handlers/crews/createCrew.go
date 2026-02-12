@@ -3,7 +3,7 @@ package crews
 import (
 	"chat-server/internals/db/models"
 	"chat-server/internals/requests"
-	"chat-server/internals/responses"
+	"chat-server/internals/transport/dto"
 	"chat-server/internals/utils"
 	"chat-server/middleware"
 	"encoding/json"
@@ -57,7 +57,7 @@ func (h *CrewHandler) CreateCrew(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := responses.CrewResponse{
+	response := dto.CrewResponse{
 		ID:        newCrew.ID,
 		Name:      newCrew.Name,
 		OwnerID:   newCrew.OwnerID,

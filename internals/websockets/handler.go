@@ -1,7 +1,9 @@
 package websockets
 
 import (
+	"chat-server/internals/services"
 	"chat-server/internals/utils"
+	"context"
 	"log"
 	"net/http"
 
@@ -14,7 +16,13 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-func ServeWS(hub *Hub, w http.ResponseWriter, r *http.Request) {
+func ServeWS(
+	hub *Hub,
+	messageservice services.MessageService,
+	w http.ResponseWriter,
+	r *http.Request,
+
+) {
 
 	//get user Id
 	cookie, err := r.Cookie("token")
@@ -37,8 +45,9 @@ func ServeWS(hub *Hub, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ctx, cancel := context.WithCancel(context.Background())
 	//create the client
-	client := NewClient(conn, userID, hub)
+	client := NewClient(conn, userID, hub, ctx, cancel, messageservice)
 
 	//register the client in the hub
 	hub.register <- client

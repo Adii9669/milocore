@@ -9,8 +9,8 @@ import (
 
 	//internals
 	"chat-server/internals/db/models"
-	"chat-server/internals/handlers"
 	"chat-server/internals/repository"
+	"chat-server/internals/requests"
 	"chat-server/internals/utils"
 
 	//libraries
@@ -37,7 +37,7 @@ func LoginHandler(userRepo repository.UserRepository) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		//1.Decode the incoming request
-		var req handlers.Credentials
+		var req requests.Credentials
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			writeJSONError(w, "Invalid request Body.", http.StatusBadRequest)
 			return

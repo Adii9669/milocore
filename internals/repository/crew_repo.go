@@ -1,8 +1,8 @@
 package repository
 
 import (
-	"chat-server/internals/db"
 	"chat-server/internals/db/models"
+	"context"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -12,19 +12,23 @@ type CrewRepository interface {
 	CreateCrew(crew *models.Crew) error
 	FindForUser(userID string) ([]models.Crew, error)
 	DeleteCrewByID(ownerID uuid.UUID, crewID uuid.UUID) error
+	ExistByID(ctx context.Context, crewID uuid.UUID) (bool, error)
+	IsMember(ctx context.Context, crewID, senderID uuid.UUID) (bool, error)
 }
 
-type crewRepository struct{}
+type crewRepository struct {
+	db *gorm.DB
+}
 
 // constructor
-func NewCrewRepository() CrewRepository {
-	return &crewRepository{}
+func NewCrewRepository(db *gorm.DB) CrewRepository {
+	return &crewRepository{db: db}
 }
 
 // create cerw
 func (r *crewRepository) CreateCrew(crew *models.Crew) error {
 
-	return db.DB.Transaction(func(tx *gorm.DB) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
 		//1. Create a Crew
 		if err := tx.Create(crew).Error; err != nil {
 			return err
@@ -51,18 +55,18 @@ func (r *crewRepository) FindForUser(userID string) ([]models.Crew, error) {
 	var user models.User
 
 	// 1. First, find the user to start the association from.
-	if err := db.DB.First(&user, "id = ?", userID).Error; err != nil {
+	if err := r.db.First(&user, "id = ?", userID).Error; err != nil {
 		return nil, err
 	}
 
 	// 2. Now, use Association to find all the 'Crews' linked to that user.
-	err := db.DB.Model(&user).Association("Crews").Find(&crews)
+	err := r.db.Model(&user).Association("Crews").Find(&crews)
 	return crews, err
 }
 
 // Delete the crews
 func (r *crewRepository) DeleteCrewByID(ownerID uuid.UUID, crewID uuid.UUID) error {
-	return db.DB.Transaction(func(tx *gorm.DB) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
 
 		//1. chec owner ship
 		var crew models.Crew
@@ -86,4 +90,30 @@ func (r *crewRepository) DeleteCrewByID(ownerID uuid.UUID, crewID uuid.UUID) err
 		}
 		return nil
 	})
+}
+
+func (r *crewRepository) ExistByID(ctx context.Context, crewID uuid.UUID) (bool, error) {
+	var count int64
+
+	err := r.db.WithContext(ctx).Model(&models.Crew{}).Where("id=?", crewID).
+		Count(&count).Error
+	if err != nil {
+		return false, err
+	}
+
+	return count > 0, nil
+}
+func (r *crewRepository) IsMember(ctx context.Context, crewID, senderID uuid.UUID) (bool, error) {
+
+	var count int64
+
+	err := r.db.WithContext(ctx).
+		Model(&models.CrewMember{}).Where("crew_id=? AND user_id=?", crewID, senderID).
+		Count(&count).Error
+
+	if err != nil {
+		return false, err
+	}
+
+	return count > 0, nil
 }

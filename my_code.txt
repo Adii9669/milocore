@@ -1,0 +1,2167 @@
+diff --git a/go.mod b/go.mod
+index b37dd1c..b9bf033 100644
+--- a/go.mod
++++ b/go.mod
+@@ -15,16 +15,9 @@ require (
+ 	gorm.io/gorm v1.30.2
+ )
+ 
+-require (
+-	github.com/google/uuid v1.6.0
+-	gorm.io/datatypes v1.2.7
+-)
++require github.com/google/uuid v1.6.0
+ 
+-require (
+-	filippo.io/edwards25519 v1.1.0 // indirect
+-	github.com/go-sql-driver/mysql v1.8.1 // indirect
+-	gorm.io/driver/mysql v1.5.6 // indirect
+-)
++require github.com/go-chi/chi/v5 v5.2.4
+ 
+ require github.com/caarlos0/env/v6 v6.10.1 //direct
+ 
+diff --git a/go.sum b/go.sum
+index dfe4f54..24301db 100644
+--- a/go.sum
++++ b/go.sum
+@@ -1,5 +1,3 @@
+-filippo.io/edwards25519 v1.1.0 h1:FNf4tywRC1HmFuKW5xopWpigGjJKiJSV0Cqo0cJWDaA=
+-filippo.io/edwards25519 v1.1.0/go.mod h1:BxyFTGdWcka3PhytdK4V28tE5sGfRvvvRV7EaN4VDT4=
+ github.com/caarlos0/env/v6 v6.10.1 h1:t1mPSxNpei6M5yAeu1qtRdPAK29Nbcf/n3G7x+b3/II=
+ github.com/caarlos0/env/v6 v6.10.1/go.mod h1:hvp/ryKXKipEkcuYjs9mI4bBCg+UI0Yhgm5Zu0ddvwc=
+ github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
+@@ -9,6 +7,8 @@ github.com/felixge/httpsnoop v1.0.3 h1:s/nj+GCswXYzN5v2DpNMuMQYe+0DDwt5WVCU6CWBd
+ github.com/felixge/httpsnoop v1.0.3/go.mod h1:m8KPJKqk1gH5J9DgRY2ASl2lWCfGKXixSwevea8zH2U=
+ github.com/gabriel-vasile/mimetype v1.4.8 h1:FfZ3gj38NjllZIeJAmMhr+qKL8Wu+nOoI3GqacKw1NM=
+ github.com/gabriel-vasile/mimetype v1.4.8/go.mod h1:ByKUIKGjh1ODkGM1asKUbQZOLGrPjydw3hYPU2YU9t8=
++github.com/go-chi/chi/v5 v5.2.4 h1:WtFKPHwlywe8Srng8j2BhOD9312j9cGUxG1SP4V2cR4=
++github.com/go-chi/chi/v5 v5.2.4/go.mod h1:X7Gx4mteadT3eDOMTsXzmI4/rwUpOwBHLpAfupzFJP0=
+ github.com/go-jose/go-jose/v4 v4.1.2 h1:TK/7NqRQZfgAh+Td8AlsrvtPoUyiHh0LqVvokh+1vHI=
+ github.com/go-jose/go-jose/v4 v4.1.2/go.mod h1:22cg9HWM1pOlnRiY+9cQYJ9XHmya1bYW8OeDM6Ku6Oo=
+ github.com/go-playground/assert/v2 v2.2.0 h1:JvknZsQTYeFEAhQwI4qEt9cyV5ONwRHC+lYKSsYSR8s=
+@@ -19,15 +19,8 @@ github.com/go-playground/universal-translator v0.18.1 h1:Bcnm0ZwsGyWbCzImXv+pAJn
+ github.com/go-playground/universal-translator v0.18.1/go.mod h1:xekY+UJKNuX9WP91TpwSH2VMlDf28Uj24BCp08ZFTUY=
+ github.com/go-playground/validator/v10 v10.27.0 h1:w8+XrWVMhGkxOaaowyKH35gFydVHOvC0/uWoy2Fzwn4=
+ github.com/go-playground/validator/v10 v10.27.0/go.mod h1:I5QpIEbmr8On7W0TktmJAumgzX4CA1XNl4ZmDuVHKKo=
+-github.com/go-sql-driver/mysql v1.7.0/go.mod h1:OXbVy3sEdcQ2Doequ6Z5BW6fXNQTmx+9S1MCJN5yJMI=
+-github.com/go-sql-driver/mysql v1.8.1 h1:LedoTUt/eveggdHS9qUFC1EFSa8bU2+1pZjSRpvNJ1Y=
+-github.com/go-sql-driver/mysql v1.8.1/go.mod h1:wEBSXgmK//2ZFJyE+qWnIsVGmvmEKlqwuVSjsCm7DZg=
+ github.com/golang-jwt/jwt/v5 v5.3.0 h1:pv4AsKCKKZuqlgs5sUmn4x8UlGa0kEVt/puTpKx9vvo=
+ github.com/golang-jwt/jwt/v5 v5.3.0/go.mod h1:fxCRLWMO43lRc8nhHWY6LGqRcf+1gQWArsqaEUEa5bE=
+-github.com/golang-sql/civil v0.0.0-20220223132316-b832511892a9 h1:au07oEsX2xN0ktxqI+Sida1w446QrXBRJ0nee3SNZlA=
+-github.com/golang-sql/civil v0.0.0-20220223132316-b832511892a9/go.mod h1:8vg3r2VgvsThLBIFL93Qb5yWzgyZWhEmBwUJWevAkK0=
+-github.com/golang-sql/sqlexp v0.1.0 h1:ZCD6MBpcuOVfGVqsEmY5/4FtYiKz6tSyUv9LPEDei6A=
+-github.com/golang-sql/sqlexp v0.1.0/go.mod h1:J4ad9Vo8ZCWQ2GMrC4UCQy1JpCbwU9m3EOqtpKwwwHI=
+ github.com/google/uuid v1.6.0 h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0=
+ github.com/google/uuid v1.6.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
+ github.com/gorilla/handlers v1.5.2 h1:cLTUSsNkgcwhgRqvCNmdbRWG0A3N4F+M2nWKdScwyEE=
+@@ -52,10 +45,6 @@ github.com/joho/godotenv v1.5.1 h1:7eLL/+HRGLY0ldzfGMeQkb7vMd0as4CfYvUVzLqw0N0=
+ github.com/joho/godotenv v1.5.1/go.mod h1:f4LDr5Voq0i2e/R5DDNOoa2zzDfwtkZa6DnEwAbqwq4=
+ github.com/leodido/go-urn v1.4.0 h1:WT9HwE9SGECu3lg4d/dIA+jxlljEa1/ffXKmRjqdmIQ=
+ github.com/leodido/go-urn v1.4.0/go.mod h1:bvxc+MVxLKB4z00jd1z+Dvzr47oO32F/QSNjSBOlFxI=
+-github.com/mattn/go-sqlite3 v1.14.15 h1:vfoHhTN1af61xCRSWzFIWzx2YskyMTwHLrExkBOjvxI=
+-github.com/mattn/go-sqlite3 v1.14.15/go.mod h1:2eHXhiwb8IkHr+BDWZGa96P6+rkvnG63S2DGjv9HUNg=
+-github.com/microsoft/go-mssqldb v1.7.2 h1:CHkFJiObW7ItKTJfHo1QX7QBBD1iV+mn1eOyRP3b/PA=
+-github.com/microsoft/go-mssqldb v1.7.2/go.mod h1:kOvZKUdrhhFQmxLZqbwUV0rHkNkZpthMITIb2Ko1IoA=
+ github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
+ github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
+ github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
+@@ -81,16 +70,7 @@ gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df/go.mod h1:LRQQ+SO6ZHR7tOkp
+ gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
+ gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=
+ gopkg.in/yaml.v3 v3.0.1/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
+-gorm.io/datatypes v1.2.7 h1:ww9GAhF1aGXZY3EB3cJPJ7//JiuQo7DlQA7NNlVaTdk=
+-gorm.io/datatypes v1.2.7/go.mod h1:M2iO+6S3hhi4nAyYe444Pcb0dcIiOMJ7QHaUXxyiNZY=
+-gorm.io/driver/mysql v1.5.6 h1:Ld4mkIickM+EliaQZQx3uOJDJHtrd70MxAUqWqlx3Y8=
+-gorm.io/driver/mysql v1.5.6/go.mod h1:sEtPWMiqiN1N1cMXoXmBbd8C6/l+TESwriotuRRpkDM=
+ gorm.io/driver/postgres v1.6.0 h1:2dxzU8xJ+ivvqTRph34QX+WrRaJlmfyPqXmoGVjMBa4=
+ gorm.io/driver/postgres v1.6.0/go.mod h1:vUw0mrGgrTK+uPHEhAdV4sfFELrByKVGnaVRkXDhtWo=
+-gorm.io/driver/sqlite v1.4.3 h1:HBBcZSDnWi5BW3B3rwvVTc510KGkBkexlOg0QrmLUuU=
+-gorm.io/driver/sqlite v1.4.3/go.mod h1:0Aq3iPO+v9ZKbcdiz8gLWRw5VOPcBOPUQJFLq5e2ecI=
+-gorm.io/driver/sqlserver v1.6.0 h1:VZOBQVsVhkHU/NzNhRJKoANt5pZGQAS1Bwc6m6dgfnc=
+-gorm.io/driver/sqlserver v1.6.0/go.mod h1:WQzt4IJo/WHKnckU9jXBLMJIVNMVeTu25dnOzehntWw=
+-gorm.io/gorm v1.25.7/go.mod h1:hbnx/Oo0ChWMn1BIhpy1oYozzpM15i4YPuHDmfYtwg8=
+ gorm.io/gorm v1.30.2 h1:f7bevlVoVe4Byu3pmbWPVHnPsLoWaMjEb7/clyr9Ivs=
+ gorm.io/gorm v1.30.2/go.mod h1:8Z33v652h4//uMA76KjeDH8mJXPm1QNCYrMeatR0DOE=
+diff --git a/internals/app/app.go b/internals/app/app.go
+index ec9632e..f8bd7ef 100644
+--- a/internals/app/app.go
++++ b/internals/app/app.go
+@@ -3,6 +3,7 @@ package app
+ import (
+ 	"chat-server/internals/config"
+ 	"chat-server/internals/repository"
++	"chat-server/internals/services"
+ 	"chat-server/internals/websockets"
+ 
+ 	"gorm.io/gorm"
+@@ -15,12 +16,14 @@ type App struct {
+ 	Hub *websockets.Hub
+ 
+ 	//Repositories for the app
+-	UserRepo    repository.UserRepository
+-	CrewRepo    repository.CrewRepository
+-	MessageRepo repository.MessageRepository
+-	FriendRepo  repository.FriendRepository
+-	ConvRepo    repository.Conversation
+-	Config      *config.AppConfig
++	UserRepo           repository.UserRepository
++	CrewRepo           repository.CrewRepository
++	MessageRepo        repository.MessageRepository
++	FriendRepo         repository.FriendRepository
++	ConvRepo           repository.Conversation
++	Config             *config.AppConfig
++	ChatHistoryService services.ChatHistroyService
++	MessageService     services.MessageService
+ }
+ 
+ // Constructor for the app
+@@ -35,10 +38,15 @@ func NewApp(
+ 		Hub:    hub,
+ 		Config: cfg,
+ 
+-		UserRepo:    repository.NewUserRepository(),
+-		CrewRepo:    repository.NewCrewRepository(),
+-		MessageRepo: repository.NewMessageRepository(),
+-		FriendRepo:  repository.NewFriendRepository(),
+-		ConvRepo:    repository.NewConversation(),
++		UserRepo:           repository.NewUserRepository(db),
++		CrewRepo:           repository.NewCrewRepository(db),
++		MessageRepo:        repository.NewMessageRepository(db),
++		FriendRepo:         repository.NewFriendRepository(db),
++		ConvRepo:           repository.NewConversation(db),
++		ChatHistoryService: services.NewChatHistoryService(repository.NewMessageRepository(db)),
++		MessageService: services.NewMessageService(
++			repository.NewMessageRepository(db),
++			repository.NewUserRepository(db),
++			repository.NewCrewRepository(db)),
+ 	}
+ }
+diff --git a/internals/db/database.go b/internals/db/database.go
+index 44602d7..ae07eed 100644
+--- a/internals/db/database.go
++++ b/internals/db/database.go
+@@ -15,7 +15,7 @@ var DB *gorm.DB
+ func ConnectToDB() *gorm.DB {
+ 
+ 	dbe := os.Getenv("DATABASE_URL")
+-	runMigrations := os.Getenv("RUN_MIGRATIONS")
++	// runMigrations := os.Getenv("RUN_MIGRATIONS")
+ 	if dbe == "" {
+ 		log.Fatal("DATABASE_URL environment variable is not set")
+ 	}
+@@ -29,23 +29,20 @@ func ConnectToDB() *gorm.DB {
+ 	log.Println("DATABASE Connection sucessful.")
+ 
+ 	//---Run AutoMigrate ---
+-	if os.Getenv("APP_ENV") != "production" {
+-		if runMigrations == "true" {
+-
+-			if err := DB.AutoMigrate(
+-				&models.User{},
+-				&models.Account{},
+-				&models.Session{},
+-				&models.Crew{},
+-				&models.Message{},
+-				&models.Friends{},
+-			); err != nil {
+-				log.Fatalf("Migration failed: %v", err)
+-			}
+-			log.Println("Database migration successful")
+-		} else {
+-			log.Println("-----Skiping the migration-------")
++	if os.Getenv("APP_ENV") == "local" {
++		if err := DB.AutoMigrate(
++			&models.User{},
++			&models.Account{},
++			&models.Session{},
++			&models.Crew{},
++			&models.Message{},
++			&models.Friends{},
++		); err != nil {
++			log.Fatalf("Migration failed: %v", err)
+ 		}
++		log.Println("Database migration successful")
++	} else {
++		log.Println("-----Skiping the migration-------")
+ 	}
+ 
+ 	return DB
+diff --git a/internals/db/models/crew.go b/internals/db/models/crew.go
+index f6b9be7..16c4bef 100644
+--- a/internals/db/models/crew.go
++++ b/internals/db/models/crew.go
+@@ -24,3 +24,16 @@ type Crew struct {
+ 	Members  []User    `gorm:"many2many:crew_members;constraint:OnDelete:CASCADE;"`
+ 	Messages []Message `gorm:"foreignKey:CrewID;constraint:OnDelete:CASCADE;"`
+ }
++
++type CrewMember struct {
++	ID     uuid.UUID `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()"`
++	CrewID uuid.UUID `gorm:"type:uuid;not null;index"`
++	UserID uuid.UUID `gorm:"type:uuid;not null;index"`
++
++	Role     string    `gorm:"not null;default:member"`
++	JoinedAt time.Time `gorm:"autoCreateTime"`
++	MutedTil *time.Time
++
++	Crew Crew `gorm:"foreignKey:CrewID"`
++	User User `gorm:"foreignKey:UserID"`
++}
+diff --git a/internals/db/models/messages.go b/internals/db/models/messages.go
+index 482e7f1..e660bfe 100644
+--- a/internals/db/models/messages.go
++++ b/internals/db/models/messages.go
+@@ -4,22 +4,21 @@ import (
+ 	"time"
+ 
+ 	"github.com/google/uuid"
+-	"gorm.io/datatypes"
+ )
+ 
+ type Message struct {
+-	ID          uuid.UUID `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()"`
+-	SenderID    string    `gorm:"type:uuid;not null;idx_sender_created"`
+-	ReceiverID  *string   `gorm:"type:uuid;idx_receiver_created"`
+-	CrewID      *string   `gorm:"type:uuid;index;idx_crew_created"`
+-	Content     *string   `gorm:"type:text;"`
+-	ContentType string    `gorm:"size:50;not null;default;'text'"`
+-	FileURL     *string   `gorm:"type:text;"`
+-	FileName    *string   `gorm:"size:255;"`
+-	FileSize    *int64
+-	Metadata    datatypes.JSONMap `gorm:"type:jsonb"`
+-	Delivered   bool              `gorm:"default:false;index"`
+-	Read        bool              `gorm:"default:false;index"`
+-	CreatedAt   time.Time
+-	UpdateAt    time.Time
++	ID         uuid.UUID `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()"`
++	SenderName string    `gorm:"type:text"`
++
++	SenderID   string  `gorm:"type:uuid;not null;idx_sender_created"`
++	ReceiverID *string `gorm:"type:uuid;idx_receiver_created"`
++
++	CrewID *string `gorm:"type:uuid;index:idx_crew_chat,priority:1"`
++
++	Content   *string `gorm:"type:text;not null"`
++	Delivered bool    `gorm:"default:false;index"`
++	Read      bool    `gorm:"default:false;index"`
++
++	CreatedAt time.Time
++	UpdatedAt time.Time
+ }
+diff --git a/internals/handlers/auth/login.go b/internals/handlers/auth/login.go
+index 59e0685..04af58b 100644
+--- a/internals/handlers/auth/login.go
++++ b/internals/handlers/auth/login.go
+@@ -9,8 +9,8 @@ import (
+ 
+ 	//internals
+ 	"chat-server/internals/db/models"
+-	"chat-server/internals/handlers"
+ 	"chat-server/internals/repository"
++	"chat-server/internals/requests"
+ 	"chat-server/internals/utils"
+ 
+ 	//libraries
+@@ -37,7 +37,7 @@ func LoginHandler(userRepo repository.UserRepository) http.HandlerFunc {
+ 	return func(w http.ResponseWriter, r *http.Request) {
+ 
+ 		//1.Decode the incoming request
+-		var req handlers.Credentials
++		var req requests.Credentials
+ 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+ 			writeJSONError(w, "Invalid request Body.", http.StatusBadRequest)
+ 			return
+diff --git a/internals/handlers/auth/verifyOtp.go b/internals/handlers/auth/verifyOtp.go
+index 5f0a67b..421e4d1 100644
+--- a/internals/handlers/auth/verifyOtp.go
++++ b/internals/handlers/auth/verifyOtp.go
+@@ -3,14 +3,15 @@ package auth
+ import (
+ 	"chat-server/internals/config"
+ 	"chat-server/internals/db"
+-	"chat-server/internals/handlers"
+ 	"chat-server/internals/repository"
++	"chat-server/internals/requests"
+ 	"chat-server/internals/utils"
+ 	"encoding/json"
+-	"github.com/google/uuid"
+ 	"log"
+ 	"net/http"
+ 
++	"github.com/google/uuid"
++
+ 	"gorm.io/gorm"
+ )
+ 
+@@ -18,7 +19,7 @@ func VerifyOtpHandler(userRepo repository.UserRepository) http.HandlerFunc {
+ 	return func(w http.ResponseWriter, r *http.Request) {
+ 
+ 		//take the request and check it
+-		var req handlers.VerifyOtpRequest
++		var req requests.VerifyOtpRequest
+ 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+ 			http.Error(w, "Invalid request body", http.StatusBadRequest)
+ 			return
+diff --git a/internals/handlers/chathistory/crew_history.go b/internals/handlers/chathistory/crew_history.go
+new file mode 100644
+index 0000000..a7ffdce
+--- /dev/null
++++ b/internals/handlers/chathistory/crew_history.go
+@@ -0,0 +1,22 @@
++package chathistory
++
++import (
++	"chat-server/internals/utils"
++	"net/http"
++
++	"github.com/go-chi/chi/v5"
++)
++
++func (h *Handler) GetCrewHistory(w http.ResponseWriter, r *http.Request) {
++
++	crewID := chi.URLParam(r, "crewId")
++
++	messages, err := h.service.CrewHistory(crewID, 50)
++	if err != nil {
++		http.Error(w, err.Error(), http.StatusBadRequest)
++		return
++	}
++
++	w.Header().Set("Content-Type", "application/json")
++	utils.PrettyJSON(w, messages)
++}
+diff --git a/internals/handlers/chathistory/dm_history.go b/internals/handlers/chathistory/dm_history.go
+new file mode 100644
+index 0000000..3f6c34d
+--- /dev/null
++++ b/internals/handlers/chathistory/dm_history.go
+@@ -0,0 +1,35 @@
++package chathistory
++
++import (
++	"chat-server/internals/utils"
++	"chat-server/middleware"
++	"log"
++	"net/http"
++
++	"github.com/go-chi/chi/v5"
++)
++
++func (h *Handler) GetDmHistory(w http.ResponseWriter, r *http.Request) {
++
++	otherUserID := chi.URLParam(r, "userId")
++
++	claims, ok := r.Context().Value(middleware.UserContextKey).(*utils.JWTClaims)
++	if !ok {
++		http.Error(w, "unauthorized", http.StatusUnauthorized)
++		return
++	}
++
++	authUserID := claims.UserID
++
++	log.Printf("userA %s", otherUserID)
++	log.Printf("userB %s", authUserID)
++
++	messages, err := h.service.DmHistory(authUserID, otherUserID, 50)
++	if err != nil {
++		http.Error(w, err.Error(), http.StatusBadRequest)
++		return
++	}
++	w.Header().Set("Content-Type", "application/json")
++	utils.PrettyJSON(w, messages)
++
++}
+diff --git a/internals/handlers/chathistory/handler.go b/internals/handlers/chathistory/handler.go
+new file mode 100644
+index 0000000..6dfa499
+--- /dev/null
++++ b/internals/handlers/chathistory/handler.go
+@@ -0,0 +1,13 @@
++package chathistory
++
++import "chat-server/internals/services"
++
++type Handler struct {
++	service services.ChatHistroyService
++}
++
++func NewHandler(service services.ChatHistroyService) *Handler {
++	return &Handler{
++		service: service,
++	}
++}
+diff --git a/internals/handlers/crews/createCrew.go b/internals/handlers/crews/createCrew.go
+index c878c20..9f16b25 100644
+--- a/internals/handlers/crews/createCrew.go
++++ b/internals/handlers/crews/createCrew.go
+@@ -3,7 +3,7 @@ package crews
+ import (
+ 	"chat-server/internals/db/models"
+ 	"chat-server/internals/requests"
+-	"chat-server/internals/responses"
++	"chat-server/internals/transport/dto"
+ 	"chat-server/internals/utils"
+ 	"chat-server/middleware"
+ 	"encoding/json"
+@@ -57,7 +57,7 @@ func (h *CrewHandler) CreateCrew(w http.ResponseWriter, r *http.Request) {
+ 		return
+ 	}
+ 
+-	response := responses.CrewResponse{
++	response := dto.CrewResponse{
+ 		ID:        newCrew.ID,
+ 		Name:      newCrew.Name,
+ 		OwnerID:   newCrew.OwnerID,
+diff --git a/internals/handlers/crews/getCrew.go b/internals/handlers/crews/getCrew.go
+index b42bbb5..c2d0c90 100644
+--- a/internals/handlers/crews/getCrew.go
++++ b/internals/handlers/crews/getCrew.go
+@@ -1,7 +1,7 @@
+ package crews
+ 
+ import (
+-	"chat-server/internals/responses"
++	"chat-server/internals/transport/dto"
+ 	"chat-server/internals/utils"
+ 	"chat-server/middleware"
+ 	"encoding/json"
+@@ -33,14 +33,14 @@ func (h *CrewHandler) Getcrew(w http.ResponseWriter, r *http.Request) {
+ 		// Always return an empty array instead of message
+ 		w.Header().Set("Content-Type", "application/json")
+ 		w.WriteHeader(http.StatusOK)
+-		utils.PrettyJSON(w, responses.CrewResponse{})
++		utils.PrettyJSON(w, dto.CrewResponse{})
+ 		return
+ 	}
+ 
+ 	//3.Iterate through the response you got and send only the required response
+-	response := make([]responses.CrewResponse, 0)
++	response := make([]dto.CrewResponse, 0)
+ 	for _, crew := range crews {
+-		response = append(response, responses.CrewResponse{
++		response = append(response, dto.CrewResponse{
+ 			ID:        crew.ID,
+ 			Name:      crew.Name,
+ 			OwnerID:   crew.OwnerID,
+diff --git a/internals/handlers/friends/getFriends.go b/internals/handlers/friends/getFriends.go
+new file mode 100644
+index 0000000..d057c1d
+--- /dev/null
++++ b/internals/handlers/friends/getFriends.go
+@@ -0,0 +1,46 @@
++package friends
++
++import (
++	"chat-server/internals/transport/dto"
++	"chat-server/internals/utils"
++	"chat-server/middleware"
++	"encoding/json"
++
++	// "log"
++	"net/http"
++
++	"github.com/google/uuid"
++)
++
++func (h *FriendHandler) GetFriends(w http.ResponseWriter, r *http.Request) {
++
++	//1. always get the claims first authentication from middleware
++	claims, ok := r.Context().Value(middleware.UserContextKey).(*utils.JWTClaims)
++	if !ok || claims == nil {
++		http.Error(w, "Unauthorized", http.StatusUnauthorized)
++		return
++	}
++	// log.Printf("DEBUG: Handling request for UserID: %s", claims.UserID)
++
++	//2. check the user name from the details is that exist or not
++	userID, err := uuid.Parse(claims.UserID)
++	if err != nil {
++		http.Error(w, "Invalid user ID", http.StatusUnauthorized)
++		return
++	}
++	friends, err := h.FrndRepo.GetFriend(userID)
++	// log.Printf("USEr BY username %v", crews)
++	if err != nil {
++		http.Error(w, "Failed to retrive the Friends", http.StatusInternalServerError)
++		return
++	}
++
++	if friends == nil {
++		friends = []dto.FriendResponse{}
++	}
++
++	w.Header().Set("Content-Type", "application/json")
++	w.WriteHeader(http.StatusOK)
++	json.NewEncoder(w).Encode(friends)
++
++}
+diff --git a/internals/handlers/messages/getMessage.go b/internals/handlers/messages/getMessage.go
+deleted file mode 100644
+index f12f2a1..0000000
+--- a/internals/handlers/messages/getMessage.go
++++ /dev/null
+@@ -1,24 +0,0 @@
+-package messages
+-
+-import (
+-	"chat-server/internals/utils"
+-	"net/http"
+-)
+-
+-func (h *MessageHandler) GetMessage(w http.ResponseWriter, r *http.Request) {
+-
+-	//get the crew
+-	crewID := r.URL.Query().Get("crewId")
+-	if crewID == "" {
+-		http.Error(w, "crewID required", http.StatusBadRequest)
+-		return
+-	}
+-
+-	messages, err := h.MessageRepo.GetMessagesByCrewID(crewID, 200)
+-	if err != nil {
+-		http.Error(w, "Failed to fetch messages.", http.StatusInternalServerError)
+-		return
+-	}
+-
+-	utils.PrettyJSON(w, (messages))
+-}
+diff --git a/internals/handlers/messages/handler.go b/internals/handlers/messages/handler.go
+deleted file mode 100644
+index 6921b89..0000000
+--- a/internals/handlers/messages/handler.go
++++ /dev/null
+@@ -1,13 +0,0 @@
+-package messages
+-
+-import "chat-server/internals/repository"
+-
+-type MessageHandler struct {
+-	MessageRepo repository.MessageRepository
+-}
+-
+-func NewMessageHandler(repo repository.MessageRepository) *MessageHandler {
+-	return &MessageHandler{
+-		MessageRepo: repo,
+-	}
+-}
+diff --git a/internals/repository/convo_repo.go b/internals/repository/convo_repo.go
+index 6c644ba..c2c691b 100644
+--- a/internals/repository/convo_repo.go
++++ b/internals/repository/convo_repo.go
+@@ -1,7 +1,6 @@
+ package repository
+ 
+ import (
+-	"chat-server/internals/db"
+ 	"chat-server/internals/db/models"
+ 	"errors"
+ 
+@@ -17,10 +16,12 @@ type Conversation interface {
+ 	SaveMessage(msg *models.Message) error
+ }
+ 
+-type convoRepository struct{}
++type convoRepository struct {
++	db *gorm.DB
++}
+ 
+-func NewConversation() Conversation {
+-	return &convoRepository{}
++func NewConversation(db *gorm.DB) Conversation {
++	return &convoRepository{db: db}
+ }
+ 
+ // helper function to avoid duplicate tables
+@@ -37,7 +38,7 @@ func (r *convoRepository) FindConvBetween(a, b uuid.UUID) (*models.Conversation,
+ 
+ 	var convo models.Conversation
+ 
+-	err := db.DB.Where("user1_id = ? and user2_id = ?", user1, user2).First(&convo).Error
++	err := r.db.Where("user1_id = ? and user2_id = ?", user1, user2).First(&convo).Error
+ 	if errors.Is(err, gorm.ErrRecordNotFound) {
+ 		return nil, err
+ 	}
+@@ -48,7 +49,7 @@ func (r *convoRepository) FindConvBetween(a, b uuid.UUID) (*models.Conversation,
+ // FindBYID
+ func (r *convoRepository) FindConvByID(id uuid.UUID) (*models.Conversation, error) {
+ 	var conv models.Conversation
+-	err := db.DB.Where("id = ?", id).First(&conv).Error
++	err := r.db.Where("id = ?", id).First(&conv).Error
+ 
+ 	if errors.Is(err, gorm.ErrRecordNotFound) {
+ 		return nil, err
+@@ -68,7 +69,7 @@ func (r *convoRepository) GetMessages(convID uuid.UUID, limit, offset int) ([]mo
+ 		limit = 200
+ 	}
+ 
+-	err := db.DB.
++	err := r.db.
+ 		Where("conversation_id = ?", convID).
+ 		Order("created_at DESC").
+ 		Limit(limit).
+@@ -81,5 +82,5 @@ func (r *convoRepository) GetMessages(convID uuid.UUID, limit, offset int) ([]mo
+ // SaveMessage
+ func (r *convoRepository) SaveMessage(msg *models.Message) error {
+ 	msg.ID = uuid.New()
+-	return db.DB.Create(msg).Error
++	return r.db.Create(msg).Error
+ }
+diff --git a/internals/repository/crew_repo.go b/internals/repository/crew_repo.go
+index 15e6bf6..a5d4e3d 100644
+--- a/internals/repository/crew_repo.go
++++ b/internals/repository/crew_repo.go
+@@ -1,8 +1,8 @@
+ package repository
+ 
+ import (
+-	"chat-server/internals/db"
+ 	"chat-server/internals/db/models"
++	"context"
+ 
+ 	"github.com/google/uuid"
+ 	"gorm.io/gorm"
+@@ -12,19 +12,23 @@ type CrewRepository interface {
+ 	CreateCrew(crew *models.Crew) error
+ 	FindForUser(userID string) ([]models.Crew, error)
+ 	DeleteCrewByID(ownerID uuid.UUID, crewID uuid.UUID) error
++	ExistByID(ctx context.Context, crewID uuid.UUID) (bool, error)
++	IsMember(ctx context.Context, crewID, senderID uuid.UUID) (bool, error)
+ }
+ 
+-type crewRepository struct{}
++type crewRepository struct {
++	db *gorm.DB
++}
+ 
+ // constructor
+-func NewCrewRepository() CrewRepository {
+-	return &crewRepository{}
++func NewCrewRepository(db *gorm.DB) CrewRepository {
++	return &crewRepository{db: db}
+ }
+ 
+ // create cerw
+ func (r *crewRepository) CreateCrew(crew *models.Crew) error {
+ 
+-	return db.DB.Transaction(func(tx *gorm.DB) error {
++	return r.db.Transaction(func(tx *gorm.DB) error {
+ 		//1. Create a Crew
+ 		if err := tx.Create(crew).Error; err != nil {
+ 			return err
+@@ -51,18 +55,18 @@ func (r *crewRepository) FindForUser(userID string) ([]models.Crew, error) {
+ 	var user models.User
+ 
+ 	// 1. First, find the user to start the association from.
+-	if err := db.DB.First(&user, "id = ?", userID).Error; err != nil {
++	if err := r.db.First(&user, "id = ?", userID).Error; err != nil {
+ 		return nil, err
+ 	}
+ 
+ 	// 2. Now, use Association to find all the 'Crews' linked to that user.
+-	err := db.DB.Model(&user).Association("Crews").Find(&crews)
++	err := r.db.Model(&user).Association("Crews").Find(&crews)
+ 	return crews, err
+ }
+ 
+ // Delete the crews
+ func (r *crewRepository) DeleteCrewByID(ownerID uuid.UUID, crewID uuid.UUID) error {
+-	return db.DB.Transaction(func(tx *gorm.DB) error {
++	return r.db.Transaction(func(tx *gorm.DB) error {
+ 
+ 		//1. chec owner ship
+ 		var crew models.Crew
+@@ -87,3 +91,29 @@ func (r *crewRepository) DeleteCrewByID(ownerID uuid.UUID, crewID uuid.UUID) err
+ 		return nil
+ 	})
+ }
++
++func (r *crewRepository) ExistByID(ctx context.Context, crewID uuid.UUID) (bool, error) {
++	var count int64
++
++	err := r.db.WithContext(ctx).Model(&models.Crew{}).Where("id=?", crewID).
++		Count(&count).Error
++	if err != nil {
++		return false, err
++	}
++
++	return count > 0, nil
++}
++func (r *crewRepository) IsMember(ctx context.Context, crewID, senderID uuid.UUID) (bool, error) {
++
++	var count int64
++
++	err := r.db.WithContext(ctx).
++		Model(&models.CrewMember{}).Where("crew_id=? AND user_id=?", crewID, senderID).
++		Count(&count).Error
++
++	if err != nil {
++		return false, err
++	}
++
++	return count > 0, nil
++}
+diff --git a/internals/repository/friends_repo.go b/internals/repository/friends_repo.go
+index 814afe4..e385f41 100644
+--- a/internals/repository/friends_repo.go
++++ b/internals/repository/friends_repo.go
+@@ -1,8 +1,9 @@
+ package repository
+ 
+ import (
+-	"chat-server/internals/db"
+ 	"chat-server/internals/db/models"
++	"chat-server/internals/transport/dto"
++	"fmt"
+ 
+ 	"github.com/google/uuid"
+ 	"gorm.io/gorm"
+@@ -13,14 +14,16 @@ type FriendRepository interface {
+ 	AcceptRequest(rel *models.Friends) error
+ 	FindRelation(userID, freindID uuid.UUID) (*models.Friends, error)
+ 	CreateReverseAccepted(userID, friendID uuid.UUID) error
+-	GetFriends(userID uuid.UUID) ([]models.Friends, error)
++	GetFriend(userID uuid.UUID) ([]dto.FriendResponse, error)
+ 	AcceptAndCreateReverse(rel *models.Friends, accepterID uuid.UUID) error
+ }
+ 
+-type friendRepository struct{}
++type friendRepository struct {
++	db *gorm.DB
++}
+ 
+-func NewFriendRepository() FriendRepository {
+-	return &friendRepository{}
++func NewFriendRepository(db *gorm.DB) FriendRepository {
++	return &friendRepository{db: db}
+ }
+ 
+ func (r *friendRepository) SendRequest(userID, friendID uuid.UUID) error {
+@@ -31,14 +34,14 @@ func (r *friendRepository) SendRequest(userID, friendID uuid.UUID) error {
+ 		FriendID: friendID,
+ 		Status:   "pending",
+ 	}
+-	return db.DB.Create(&friend).Error
++	return r.db.Create(&friend).Error
+ }
+ 
+ func (r *friendRepository) FindRelation(userID, frndID uuid.UUID) (*models.Friends, error) {
+ 
+ 	var rel models.Friends
+ 
+-	err := db.DB.Where("user_id = ? AND friend_id = ? ", userID, frndID).First(&rel).Error
++	err := r.db.Where("user_id = ? AND friend_id = ? ", userID, frndID).First(&rel).Error
+ 
+ 	return &rel, err
+ }
+@@ -49,7 +52,7 @@ func (r *friendRepository) AcceptRequest(rel *models.Friends) error {
+ 		This updates the existing database row.
+ 	*/
+ 	rel.Status = "accepted"
+-	return db.DB.Save(rel).Error
++	return r.db.Save(rel).Error
+ }
+ 
+ func (r *friendRepository) CreateReverseAccepted(userID, friendID uuid.UUID) error {
+@@ -61,31 +64,31 @@ func (r *friendRepository) CreateReverseAccepted(userID, friendID uuid.UUID) err
+ 		Status:   "accepted",
+ 	}
+ 
+-	return db.DB.Create(&rev).Error
++	return r.db.Create(&rev).Error
+ }
+ 
+ // -------------------------------------------------------------
+-func (r *friendRepository) GetFriends(userID uuid.UUID) ([]models.Friends, error) {
+-	var friends []models.Friends
+-
+-	/*
+-		This returns rows like:
+-		userID → friendID
+-		where status = 'accepted'
+-
+-		This gives all users that THIS user is friends with.
+-	*/
+-
+-	err := db.DB.
+-		Where("user_id = ? AND status = 'accepted'", userID).
+-		Find(&friends).Error
+-
++func (r *friendRepository) GetFriend(userID uuid.UUID) ([]dto.FriendResponse, error) {
++	var friends []dto.FriendResponse
++
++	err := r.db.
++		Table("friends").
++		Select(`
++			users.id AS id,
++			users.name AS name,
++			friends.status AS status,
++			friends.created_at AS created_at
++		`).
++		Joins("JOIN users ON users.id = friends.friend_id").
++		Where("friends.user_id = ? AND friends.status = 'accepted'", userID).
++		Scan(&friends).Error
++	fmt.Printf("%+v\n", friends)
+ 	return friends, err
+ }
+ 
+ func (r *friendRepository) AcceptAndCreateReverse(rel *models.Friends, accepterID uuid.UUID) error {
+ 	// run everything inside a transaction
+-	return db.DB.Transaction(func(tx *gorm.DB) error {
++	return r.db.Transaction(func(tx *gorm.DB) error {
+ 
+ 		// 1) Update the existing relation (A -> B) to accepted.
+ 		rel.Status = "accepted"
+diff --git a/internals/repository/message_repo.go b/internals/repository/message_repo.go
+index 7b4b26c..42162b9 100644
+--- a/internals/repository/message_repo.go
++++ b/internals/repository/message_repo.go
+@@ -1,40 +1,60 @@
+ package repository
+ 
+ import (
+-	"chat-server/internals/db"
+ 	"chat-server/internals/db/models"
++	"context"
++
++	"gorm.io/gorm"
+ )
+ 
+ type MessageRepository interface {
+-	GetMessagesByCrewID(crewID string, limit int) ([]models.Message, error)
+-	SaveMessage(msg *models.Message) error
+-	GetMessagesByUserID(userID string, limit int) ([]models.Message, error)
++	SaveMessage(context.Context, *models.Message) error
++	GetDmMessageHistory(userA string, userB string, limit int) ([]models.Message, error)
++	GetCrewMessageHistory(crewID string, limit int) ([]models.Message, error)
+ }
+ 
+-type messageRepository struct{}
++type messageRepository struct {
++	db *gorm.DB
++}
+ 
+ // constructor
+-func NewMessageRepository() MessageRepository {
+-	return &messageRepository{}
++func NewMessageRepository(db *gorm.DB) MessageRepository {
++	return &messageRepository{db: db}
+ }
+ 
+-func (r *messageRepository) GetMessagesByCrewID(crewID string, limit int) ([]models.Message, error) {
++// What this does
++// Fetches group chat history
++// Sorted oldest → newest
++// Limit applied
++func (r *messageRepository) GetCrewMessageHistory(crewID string, limit int) ([]models.Message, error) {
+ 	var messages []models.Message
+-
+-	result := db.DB.Where("crew_id= ?", crewID).Order("created_at asc").Limit(limit).Find(&messages)
++	result := r.db.Where("crew_id= ?", crewID).Order("created_at asc").Limit(limit).Find(&messages)
+ 
+ 	return messages, result.Error
+-
+ }
+ 
+-func (r *messageRepository) SaveMessage(msg *models.Message) error {
+-	return db.DB.Create(msg).Error
++// saves the messages to the database
++// using the ctx for leting is the user is disconnects.
++// if client disconnects if WS closes if request is canceled
++func (r *messageRepository) SaveMessage(ctx context.Context, msg *models.Message) error {
++	return r.db.WithContext(ctx).Create(msg).Error
+ }
+ 
+-func (r *messageRepository) GetMessagesByUserID(userID string, limit int) ([]models.Message, error) {
++func (r *messageRepository) GetDmMessageHistory(
++	userA string,
++	userB string,
++	limit int) ([]models.Message, error) {
+ 	var messages []models.Message
+ 
+-	result := db.DB.Where("user_id = ? ", userID).Order("created_at asc").Limit(limit).Find(&messages)
++	result := r.db.Where(
++		`
++		(sender_id=? AND receiver_id=?)
++		OR 
++		(sender_id= ? AND receiver_id=?)
++		`, userA, userB, userB, userA).
++		Order("created_at asc").
++		Limit(limit).
++		Find(&messages)
+ 
+ 	return messages, result.Error
+ }
+diff --git a/internals/repository/user_repo.go b/internals/repository/user_repo.go
+index 9e04d96..311a68b 100644
+--- a/internals/repository/user_repo.go
++++ b/internals/repository/user_repo.go
+@@ -1,10 +1,11 @@
+ package repository
+ 
+ import (
+-	"chat-server/internals/db"
+ 	"chat-server/internals/db/models"
++	"context"
+ 
+ 	"github.com/google/uuid"
++	"gorm.io/gorm"
+ )
+ 
+ // this is the contract for using the database operation
+@@ -13,38 +14,54 @@ type UserRepository interface {
+ 	FindByEmail(email string) (*models.User, error)
+ 	FindBYName(name string) (*models.User, error)
+ 	Create(user *models.User) error
++	ExistByID(ctx context.Context, userID uuid.UUID) (bool, error)
+ }
+ 
+ // GormUserRepository is the GORM implementation of our repository.
+-type userRepository struct{}
++type userRepository struct {
++	db *gorm.DB
++}
+ 
+ // constructor
+-func NewUserRepository() UserRepository {
+-	return &userRepository{}
++func NewUserRepository(db *gorm.DB) UserRepository {
++	return &userRepository{db: db}
+ }
+ 
+ // (id)FindByID retrieves a user by their ID from the database.
+ func (r *userRepository) FindByID(id uuid.UUID) (*models.User, error) {
+ 	var user models.User
+-	err := db.DB.First(&user, "id=?", id).Error
++	err := r.db.First(&user, "id=?", id).Error
+ 	return &user, err
+ }
+ 
+ // name
+ func (r *userRepository) FindBYName(name string) (*models.User, error) {
+ 	var user models.User
+-	err := db.DB.First(&user, "name=?", name).Error
++	err := r.db.First(&user, "name=?", name).Error
+ 	return &user, err
+ }
+ 
+ // FindByEmail retrieves a user by their email from the database.
+ func (r *userRepository) FindByEmail(email string) (*models.User, error) {
+ 	var user models.User
+-	err := db.DB.First(&user, "email = ?", email).Error
++	err := r.db.First(&user, "email = ?", email).Error
+ 	return &user, err
+ }
+ 
+ // Create saves a new user record to the database.
+ func (r *userRepository) Create(user *models.User) error {
+-	return db.DB.Create(user).Error
++	return r.db.Create(user).Error
++}
++
++// ExistByID
++func (r *userRepository) ExistByID(ctx context.Context, id uuid.UUID) (bool, error) {
++	var count int64
++
++	err := r.db.WithContext(ctx).Model(&models.User{}).Where("id=?", id).Count(&count).Error
++
++	if err != nil {
++		return false, err
++	}
++
++	return count > 0, nil
+ }
+diff --git a/internals/requests/message_req.go b/internals/requests/message_req.go
+index 9c88b56..b938113 100644
+--- a/internals/requests/message_req.go
++++ b/internals/requests/message_req.go
+@@ -1,6 +1,11 @@
+ package requests
+ 
+-import "encoding/json"
++import (
++	"encoding/json"
++	"time"
++
++	"github.com/google/uuid"
++)
+ 
+ type IncomingEnvelope struct {
+ 	Action  string          `json:"action"` // e.g., "message"
+@@ -14,3 +19,13 @@ type IncomingPayloadMessage struct {
+ 	Content     string  `json:"content"`
+ 	ClientNonce *string `json:"client_nonce,omitempty"`
+ }
++
++type MessageResponse struct {
++	ID         uuid.UUID `json:"ID"`
++	SenderID   string    `json:"SenderID"`
++	SenderName string    `json:"SenderName"` // Add this for frontend
++	ReceiverID *string   `json:"ReceiverID,omitempty"`
++	CrewID     *string   `json:"CrewID,omitempty"`
++	Content    *string   `json:"Content"`
++	CreatedAt  time.Time `json:"CreatedAt"`
++}
+diff --git a/internals/handlers/comman_struct.go b/internals/requests/user_req.go
+similarity index 50%
+rename from internals/handlers/comman_struct.go
+rename to internals/requests/user_req.go
+index c4ae7c4..6e10e55 100644
+--- a/internals/handlers/comman_struct.go
++++ b/internals/requests/user_req.go
+@@ -1,17 +1,4 @@
+-package handlers
+-
+-import (
+-	"time"
+-
+-	"github.com/google/uuid"
+-)
+-
+-type UserResponse struct {
+-	ID        uuid.UUID `json:"id"`
+-	Username  string    `json:"username"`
+-	Email     string    `json:"email"`
+-	CreatedAt time.Time `json:"createdAt"`
+-}
++package requests
+ 
+ type Credentials struct {
+ 	Username string `json:"username"`
+diff --git a/internals/responses/convo_res.go b/internals/responses/convo_res.go
+deleted file mode 100644
+index 7686f3b..0000000
+--- a/internals/responses/convo_res.go
++++ /dev/null
+@@ -1,13 +0,0 @@
+-package responses
+-
+-import (
+-	"github.com/google/uuid"
+-	"time"
+-)
+-
+-type ConvoResponse struct {
+-	ID        uuid.UUID `json:"id"`
+-	UserOneID uuid.UUID `json:"useroneId"`
+-	UserTwoID uuid.UUID `json:"usertwoId"`
+-	CreatedAt time.Time `json:"createdAt"`
+-}
+diff --git a/internals/services/chat_histroy_serv.go b/internals/services/chat_histroy_serv.go
+new file mode 100644
+index 0000000..cafd199
+--- /dev/null
++++ b/internals/services/chat_histroy_serv.go
+@@ -0,0 +1,75 @@
++package services
++
++import (
++	"chat-server/internals/repository"
++	"chat-server/internals/transport/dto"
++	"chat-server/internals/transport/mapper"
++	"errors"
++)
++
++type ChatHistroyService interface {
++	CrewHistory(crewID string, limit int) ([]dto.MessageResponse, error)
++	DmHistory(userA string, userB string, limit int) ([]dto.MessageResponse, error)
++}
++
++type chathistroyservice struct {
++	messageRepo repository.MessageRepository
++}
++
++func NewChatHistoryService(repo repository.MessageRepository) ChatHistroyService {
++	return &chathistroyservice{
++		messageRepo: repo,
++	}
++}
++
++func (s *chathistroyservice) CrewHistory(crewID string, limit int) ([]dto.MessageResponse, error) {
++
++	if crewID == "" {
++		return nil, errors.New("crewID is required")
++	}
++
++	if limit <= 0 || limit >= 100 {
++		limit = 50
++	}
++	messages, err := s.messageRepo.GetCrewMessageHistory(crewID, limit)
++	if err != nil {
++		return nil, errors.New("Failed to get crew Histroy")
++	}
++
++	var responses []dto.MessageResponse
++
++	for _, msg := range messages {
++		resp := mapper.ToCrewMessageResponse(&msg)
++		responses = append(responses, resp)
++	}
++	return responses, nil
++}
++
++func (s *chathistroyservice) DmHistory(userA string, userB string, limit int) ([]dto.MessageResponse, error) {
++	if userA == "" || userB == "" {
++		return nil, errors.New("invalid users")
++	}
++
++	if userA == userB {
++		return nil, errors.New("cannot dm yourself")
++	}
++
++	if limit <= 0 || limit > 100 {
++		limit = 50
++	}
++
++	messages, err := s.messageRepo.GetDmMessageHistory(userA, userB, limit)
++	if err != nil {
++		return nil, errors.New("Failed to get Histroy")
++	}
++
++	//creating a slice to change all the models into dto
++	var responses []dto.MessageResponse
++
++	for _, msg := range messages {
++		resp := mapper.ToDMMessageResponse(&msg, userA)
++		responses = append(responses, resp)
++	}
++
++	return responses, nil
++}
+diff --git a/internals/services/messsage_service.go b/internals/services/messsage_service.go
+new file mode 100644
+index 0000000..7872cfd
+--- /dev/null
++++ b/internals/services/messsage_service.go
+@@ -0,0 +1,170 @@
++package services
++
++import (
++	"chat-server/internals/db/models"
++	"chat-server/internals/repository"
++	"chat-server/internals/transport/mapper"
++	"context"
++	"errors"
++
++	"github.com/google/uuid"
++)
++
++type IncomingMessage struct {
++	Type       string  `json:"type"` // "message"
++	Content    string  `json:"content"`
++	CrewID     *string `json:"crewId"`
++	ReceiverID *string `json:"receiverId"`
++}
++
++type MessageService interface {
++	HandleIncomingMessage(
++		ctx context.Context,
++		senderID string,
++		payload IncomingMessage) (*MessageResult, error)
++}
++
++type messageService struct {
++	messageRepo repository.MessageRepository
++	userRepo    repository.UserRepository
++	crewRepo    repository.CrewRepository
++}
++
++func NewMessageService(
++	messageRepo repository.MessageRepository,
++	userRepo repository.UserRepository,
++	crewRepo repository.CrewRepository,
++) MessageService {
++	return &messageService{
++		messageRepo: messageRepo,
++		userRepo:    userRepo,
++		crewRepo:    crewRepo,
++	}
++}
++
++func (s *messageService) HandleIncomingMessage(
++	ctx context.Context,
++	senderID string,
++	payload IncomingMessage) (*MessageResult, error) {
++
++	//check the payload first
++	// if payload.Type != "message" {
++	// 	return nil, errors.New("invalid message type")
++	// }
++	if payload.Type == "dm" {
++		if payload.ReceiverID == nil || payload.CrewID != nil {
++			return nil, errors.New("invalid message type")
++		}
++	}
++
++	if payload.Type == "crew" {
++		if payload.ReceiverID != nil || payload.CrewID == nil {
++			return nil, errors.New("invalid message type")
++		}
++	}
++
++	if payload.Content == "" {
++		return nil, errors.New("empty message")
++	}
++
++	if payload.CrewID == nil && payload.ReceiverID == nil {
++		return nil, errors.New("no target specified")
++	}
++
++	if payload.CrewID != nil && payload.ReceiverID != nil {
++		return nil, errors.New("ambiguous target")
++	}
++
++	//check the userID exist or not ?
++	senderUUID, err := uuid.Parse(senderID)
++	if err != nil {
++		return nil, errors.New("invalid sender Id")
++	}
++
++	// =========================
++	// DM MESSAGE
++	// =========================
++	if payload.ReceiverID != nil {
++		//reciverID check (validate)
++		receiver, err := uuid.Parse(*payload.ReceiverID)
++		if err != nil {
++			return nil, errors.New("invalid receiver ID")
++		}
++
++		//if exist (check if exist or not )
++
++		exists, err := s.userRepo.ExistByID(ctx, receiver)
++		if err != nil {
++			return nil, err
++		}
++		if !exists {
++			return nil, errors.New("receiver does not exist")
++		}
++
++		//msg store the raw db models  for the message
++		msg := &models.Message{
++			ID:         uuid.New(),
++			SenderID:   senderID,
++			ReceiverID: payload.ReceiverID,
++			Content:    &payload.Content,
++		}
++
++		if err := s.messageRepo.SaveMessage(ctx, msg); err != nil {
++			return nil, err
++		}
++
++		//this is the mapper converting the database models into the dto for sending back the response
++		resp := mapper.ToDMMessageResponse(msg, senderID)
++		return &MessageResult{
++			Response:   &resp,
++			SenderID:   senderID,
++			ReceiverID: payload.ReceiverID,
++			CrewID:     nil,
++		}, nil
++	}
++
++	// =========================
++	//  CREW MESSAGE
++	// =========================
++	crewUUID, err := uuid.Parse(*payload.CrewID)
++	if err != nil {
++		return nil, errors.New("invalid crew ID")
++	}
++
++	//if exist (check if exist or not )
++	exists, err := s.crewRepo.ExistByID(ctx, crewUUID)
++	if err != nil {
++		return nil, err
++	}
++	if !exists {
++		return nil, errors.New("receiver does not exist")
++	}
++
++	// check if a member of the crew or not ?
++	isMember, err := s.crewRepo.IsMember(ctx, crewUUID, senderUUID)
++	if err != nil {
++		return nil, err
++	}
++	if !isMember {
++		return nil, errors.New("not a member of this crew")
++	}
++
++	msg := &models.Message{
++		ID:       uuid.New(),
++		CrewID:   payload.CrewID,
++		SenderID: senderID,
++		Content:  &payload.Content,
++	}
++
++	if err := s.messageRepo.SaveMessage(ctx, msg); err != nil {
++		return nil, err
++	}
++
++	resp := mapper.ToCrewMessageResponse(msg)
++	return &MessageResult{
++		Response:   &resp,
++		SenderID:   senderID,
++		ReceiverID: nil,
++		CrewID:     payload.CrewID,
++	}, nil
++}
+diff --git a/internals/services/types.go b/internals/services/types.go
+new file mode 100644
+index 0000000..3ad5046
+--- /dev/null
++++ b/internals/services/types.go
+@@ -0,0 +1,10 @@
++package services
++
++import "chat-server/internals/transport/dto"
++
++type MessageResult struct {
++	Response   *dto.MessageResponse
++	SenderID   string
++	ReceiverID *string
++	CrewID     *string
++}
+diff --git a/internals/responses/crew_res.go b/internals/transport/dto/crew.go
+similarity index 92%
+rename from internals/responses/crew_res.go
+rename to internals/transport/dto/crew.go
+index b4624c3..0826525 100644
+--- a/internals/responses/crew_res.go
++++ b/internals/transport/dto/crew.go
+@@ -1,4 +1,4 @@
+-package responses
++package dto
+ 
+ import (
+ 	"time"
+diff --git a/internals/transport/dto/friend.go b/internals/transport/dto/friend.go
+new file mode 100644
+index 0000000..3ea2a92
+--- /dev/null
++++ b/internals/transport/dto/friend.go
+@@ -0,0 +1,13 @@
++package dto
++
++import (
++	"github.com/google/uuid"
++	"time"
++)
++
++type FriendResponse struct {
++	ID        uuid.UUID `json:"id"` // friend's USER ID
++	Name      string    `json:"name"`
++	Status    string    `json:"status"`
++	CreatedAt time.Time `json:"created_at"`
++}
+diff --git a/internals/transport/dto/message.go b/internals/transport/dto/message.go
+new file mode 100644
+index 0000000..9a4b5fe
+--- /dev/null
++++ b/internals/transport/dto/message.go
+@@ -0,0 +1,23 @@
++package dto
++
++import "time"
++
++type MessageResponse struct {
++	ID      string `json:"id"`
++	Type    string `json:"type"`
++	Content string `json:"content"`
++
++	CreatedAt time.Time `json:"createdAt"`
++
++	//for dm
++	IsMine *bool `json:"isMine,omitempty"`
++
++	//for crews
++	Sender *SenderDTO `json:"sender,omitempty"`
++	CrewID *string    `json:"crewId,omitempty"`
++}
++
++type SenderDTO struct {
++	ID   string `json:"id"`
++	Name string `json:"name"`
++}
+diff --git a/internals/transport/dto/user.go b/internals/transport/dto/user.go
+new file mode 100644
+index 0000000..fc3b36c
+--- /dev/null
++++ b/internals/transport/dto/user.go
+@@ -0,0 +1,14 @@
++package dto
++
++import (
++	"time"
++
++	"github.com/google/uuid"
++)
++
++type UserResponse struct {
++	ID        uuid.UUID `json:"id"`
++	Username  string    `json:"username"`
++	Email     string    `json:"email"`
++	CreatedAt time.Time `json:"createdAt"`
++}
+diff --git a/internals/transport/mapper/message.go b/internals/transport/mapper/message.go
+new file mode 100644
+index 0000000..b34ba74
+--- /dev/null
++++ b/internals/transport/mapper/message.go
+@@ -0,0 +1,30 @@
++package mapper
++
++import (
++	"chat-server/internals/db/models"
++	"chat-server/internals/transport/dto"
++)
++
++func ToDMMessageResponse(msg *models.Message, authUserID string) dto.MessageResponse {
++	isMine := msg.SenderID == authUserID
++	return dto.MessageResponse{
++		ID:        msg.ID.String(),
++		Type:      "dm",
++		Content:   *msg.Content,
++		IsMine:    &isMine,
++		CreatedAt: msg.CreatedAt,
++	}
++}
++
++func ToCrewMessageResponse(msg *models.Message) dto.MessageResponse {
++	return dto.MessageResponse{
++		ID:        msg.ID.String(),
++		Type:      "crew",
++		Content:   *msg.Content,
++		CreatedAt: msg.CreatedAt,
++		Sender: &dto.SenderDTO{
++			ID:   msg.SenderID,
++			Name: msg.SenderName,
++		},
++	}
++}
+diff --git a/internals/websockets/client.go b/internals/websockets/client.go
+index df7bf35..47fea96 100644
+--- a/internals/websockets/client.go
++++ b/internals/websockets/client.go
+@@ -1,6 +1,8 @@
+ package websockets
+ 
+ import (
++	"chat-server/internals/services"
++	"context"
+ 	"encoding/json"
+ 	"log"
+ 	"time"
+@@ -9,20 +11,33 @@ import (
+ )
+ 
+ type Client struct {
+-	conn   *websocket.Conn
+-	send   chan []byte
+-	userID string
+-	crews  map[string]bool
+-	hub    *Hub
++	conn           *websocket.Conn
++	send           chan []byte
++	userID         string
++	crews          map[string]bool
++	hub            *Hub
++	ctx            context.Context
++	cancel         context.CancelFunc
++	messageService services.MessageService
+ }
+ 
+-func NewClient(conn *websocket.Conn, userID string, hub *Hub) *Client {
++func NewClient(
++	conn *websocket.Conn,
++	userID string,
++	hub *Hub,
++	ctx context.Context,
++	cancel context.CancelFunc,
++	messageService services.MessageService,
++) *Client {
+ 	return &Client{
+-		conn:   conn,
+-		send:   make(chan []byte, 256),
+-		userID: userID,
+-		crews:  make(map[string]bool),
+-		hub:    hub,
++		conn:           conn,
++		send:           make(chan []byte, 256),
++		userID:         userID,
++		crews:          make(map[string]bool),
++		hub:            hub,
++		ctx:            ctx,
++		cancel:         cancel,
++		messageService: messageService,
+ 	}
+ }
+ 
+@@ -30,6 +45,7 @@ func NewClient(conn *websocket.Conn, userID string, hub *Hub) *Client {
+ func (c *Client) readPump() {
+ 	defer func() {
+ 		// On exit, unregister client and close connection
++		c.cancel()
+ 		c.hub.unregister <- c
+ 		c.conn.Close()
+ 	}()
+@@ -47,36 +63,60 @@ func (c *Client) readPump() {
+ 			break
+ 		}
+ 
+-		var msg IncomingMessage
+-		if err := json.Unmarshal(data, &msg); err != nil {
++		var incomingmsg services.IncomingMessage
++		if err := json.Unmarshal(data, &incomingmsg); err != nil {
+ 			continue
+ 		}
+ 
+-		if msg.Type == "" || msg.ReceiverID == "" || msg.Content == "" {
++		//context for per meesage
++		msgCtx, cancel := context.WithTimeout(c.ctx, 5*time.Second)
++
++		savedMsg, err := c.messageService.HandleIncomingMessage(
++			msgCtx,
++			c.userID,
++			incomingmsg,
++		)
++		cancel()
++		if err != nil {
++			log.Println("failed to save message:", err)
+ 			continue
+ 		}
+ 
+ 		//overwrite the senderID and update it to the userid from which the connection was made during the websocket connection
+ 		//the make single source of truth the server don't have to trust on the payload userID send by the client
+ 		//this is crusical for security
+-		msg.SenderID = c.userID
+ 
+-		c.hub.route <- OutgoingMessage{
+-			Type:       msg.Type,
+-			SenderID:   msg.SenderID,
+-			ReceiverID: msg.ReceiverID,
+-			Content:    msg.Content,
+-		}
++		c.hub.route <- savedMsg
++
+ 	}
+ }
+ 
+ // writePump
+ func (c *Client) writePump() {
+ 	defer c.conn.Close()
+-	for msg := range c.send {
+-		c.conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
+-		if err := c.conn.WriteMessage(websocket.TextMessage, msg); err != nil {
++
++	for {
++		select {
++		case <-c.ctx.Done():
+ 			return
++		case msg, ok := <-c.send:
++			if !ok {
++				return
++			}
++			c.conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
++			if err := c.conn.WriteMessage(websocket.TextMessage, msg); err != nil {
++				return
++			}
+ 		}
+ 	}
+ }
++
++// func (c *Client) writePump() {
++// 	defer c.conn.Close()
++// 	for msg := range c.send {
++// 		c.conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
++// 		if err := c.conn.WriteMessage(websocket.TextMessage, msg); err != nil {
++// 			return
++// 		}
++// 	}
++// }
+diff --git a/internals/websockets/handler.go b/internals/websockets/handler.go
+index 7c1aadb..ceac539 100644
+--- a/internals/websockets/handler.go
++++ b/internals/websockets/handler.go
+@@ -1,7 +1,9 @@
+ package websockets
+ 
+ import (
++	"chat-server/internals/services"
+ 	"chat-server/internals/utils"
++	"context"
+ 	"log"
+ 	"net/http"
+ 
+@@ -14,7 +16,13 @@ var upgrader = websocket.Upgrader{
+ 	},
+ }
+ 
+-func ServeWS(hub *Hub, w http.ResponseWriter, r *http.Request) {
++func ServeWS(
++	hub *Hub,
++	messageservice services.MessageService,
++	w http.ResponseWriter,
++	r *http.Request,
++
++) {
+ 
+ 	//get user Id
+ 	cookie, err := r.Cookie("token")
+@@ -37,8 +45,9 @@ func ServeWS(hub *Hub, w http.ResponseWriter, r *http.Request) {
+ 		return
+ 	}
+ 
++	ctx, cancel := context.WithCancel(context.Background())
+ 	//create the client
+-	client := NewClient(conn, userID, hub)
++	client := NewClient(conn, userID, hub, ctx, cancel, messageservice)
+ 
+ 	//register the client in the hub
+ 	hub.register <- client
+diff --git a/internals/websockets/helper.go b/internals/websockets/helper.go
+new file mode 100644
+index 0000000..6a85db0
+--- /dev/null
++++ b/internals/websockets/helper.go
+@@ -0,0 +1,151 @@
++package websockets
++
++import (
++	"chat-server/internals/services"
++	"encoding/json"
++	"log"
++)
++
++// helper function
++// register client
++func (h *Hub) handleRegister(client *Client) {
++	// Track global clients
++	h.clients[client] = true
++
++	// Track per-user connections
++	if _, ok := h.users[client.userID]; !ok {
++		h.users[client.userID] = make(map[*Client]bool)
++	}
++	h.users[client.userID][client] = true
++}
++
++// unregister client
++func (h *Hub) handleUnregister(client *Client) {
++	// Remove from global clients
++	if _, ok := h.clients[client]; ok {
++		// removing client from hub ke clients se
++		delete(h.clients, client)
++		close(client.send)
++	}
++
++	// Remove from user map
++	if userClients, ok := h.users[client.userID]; ok {
++		delete(userClients, client)
++		if len(userClients) == 0 {
++			delete(h.users, client.userID)
++		}
++	}
++
++	// Remove from all crews
++	for crewID := range client.crews {
++		if crewClients, ok := h.crews[crewID]; ok {
++			delete(crewClients, client)
++			if len(crewClients) == 0 {
++				delete(h.crews, crewID)
++			}
++		}
++	}
++}
++
++// braodcast messages
++func (h *Hub) handleBroadcast(data []byte) {
++	for client := range h.clients {
++		select {
++		case client.send <- data:
++		default:
++			h.unregister <- client
++		}
++	}
++}
++
++// dm messages
++func (h *Hub) routeDMMessage(msg *services.MessageResult) {
++	receiverClients, ok := h.users[*msg.ReceiverID]
++	if !ok {
++		return
++	}
++
++	payload, err := json.Marshal(msg)
++	if err != nil {
++		log.Println("Failed to marshal DM", err)
++		return
++	}
++
++	for client := range receiverClients {
++		select {
++		case client.send <- payload:
++		default:
++			h.unregister <- client
++		}
++	}
++
++	log.Printf("Sending ack")
++	// notify sender that message was delivered
++	h.sendAck(msg.SenderID, msg.Response.ID, "delivered")
++}
++
++// crew messages
++func (h *Hub) routeCrewMessage(msg *services.MessageResult) {
++	crewClients, ok := h.crews[*msg.CrewID]
++	if !ok {
++		return
++	}
++
++	payload, err := json.Marshal(msg)
++	if err != nil {
++		log.Println("Failed to marshal Crew", err)
++		return
++	}
++
++	for client := range crewClients {
++		select {
++		case client.send <- payload:
++		default:
++			h.unregister <- client
++		}
++	}
++
++	// notify sender that message was delivered
++	h.sendAck(msg.SenderID, msg.Response.ID, "delivered")
++
++}
++
++func (h *Hub) routeMessage(msg *services.MessageResult) {
++	if msg.CrewID != nil {
++		h.routeCrewMessage(msg)
++		return
++	}
++	if msg.ReceiverID != nil {
++		h.routeDMMessage(msg)
++		return
++	}
++
++}
++
++// acknowledge messages
++func (h *Hub) sendAck(senderID, msgID, status string) {
++	clients, ok := h.users[senderID]
++	if !ok {
++		return
++	}
++
++	ack := AckMessage{
++		Type:      "ack",
++		MessageID: msgID,
++		Status:    status,
++	}
++
++	payload, err := json.Marshal(ack)
++	if err != nil {
++		log.Println("marshal ack failed:", err)
++		return
++	}
++
++	for client := range clients {
++		select {
++		case client.send <- payload:
++		default:
++			h.unregister <- client
++		}
++	}
++}
+diff --git a/internals/websockets/hub.go b/internals/websockets/hub.go
+index aaccabd..b077a48 100644
+--- a/internals/websockets/hub.go
++++ b/internals/websockets/hub.go
+@@ -1,7 +1,7 @@
+ package websockets
+ 
+ import (
+-	"encoding/json"
++	"chat-server/internals/services"
+ 	"log"
+ )
+ 
+@@ -15,7 +15,7 @@ type Hub struct {
+ 	crews map[string]map[*Client]bool
+ 
+ 	broadcast chan []byte
+-	route     chan OutgoingMessage
++	route     chan *services.MessageResult
+ }
+ 
+ // here we are making those channels in the constructor
+@@ -30,112 +30,11 @@ func NewHub() *Hub {
+ 		crews: make(map[string]map[*Client]bool),
+ 
+ 		broadcast: make(chan []byte, 256),
+-		route:     make(chan OutgoingMessage),
++		route:     make(chan *services.MessageResult),
+ 	}
+ 
+ }
+ 
+-// helper function
+-func (h *Hub) handleRegister(client *Client) {
+-	// Track global clients
+-	h.clients[client] = true
+-
+-	// Track per-user connections
+-	if _, ok := h.users[client.userID]; !ok {
+-		h.users[client.userID] = make(map[*Client]bool)
+-	}
+-	h.users[client.userID][client] = true
+-}
+-
+-func (h *Hub) handleUnregister(client *Client) {
+-	// Remove from global clients
+-	if _, ok := h.clients[client]; ok {
+-		// removing client from hub ke clients se
+-		delete(h.clients, client)
+-		close(client.send)
+-	}
+-
+-	// Remove from user map
+-	if userClients, ok := h.users[client.userID]; ok {
+-		delete(userClients, client)
+-		if len(userClients) == 0 {
+-			delete(h.users, client.userID)
+-		}
+-	}
+-
+-	// Remove from all crews
+-	for crewID := range client.crews {
+-		if crewClients, ok := h.crews[crewID]; ok {
+-			delete(crewClients, client)
+-			if len(crewClients) == 0 {
+-				delete(h.crews, crewID)
+-			}
+-		}
+-	}
+-}
+-
+-func (h *Hub) sendDirectMessage(msg OutgoingMessage) {
+-	clients, ok := h.users[msg.ReceiverID]
+-	if !ok {
+-		return
+-	}
+-
+-	data, err := json.Marshal(msg)
+-	if err != nil {
+-		return
+-	}
+-
+-	for client := range clients {
+-		select {
+-		case client.send <- data:
+-		default:
+-			// client is slow or dead
+-			h.unregister <- client
+-		}
+-	}
+-}
+-
+-func (h *Hub) sendCrewMessage(msg OutgoingMessage) {
+-	clients, ok := h.crews[msg.ReceiverID]
+-	if !ok {
+-		return
+-	}
+-
+-	data, err := json.Marshal(msg)
+-	if err != nil {
+-		return
+-	}
+-
+-	for client := range clients {
+-		select {
+-		case client.send <- data:
+-		default:
+-			h.unregister <- client
+-		}
+-	}
+-}
+-
+-func (h *Hub) handleBroadcast(data []byte) {
+-	for client := range h.clients {
+-		select {
+-		case client.send <- data:
+-		default:
+-			h.unregister <- client
+-		}
+-	}
+-}
+-
+-func (h *Hub) handleMessage(msg OutgoingMessage) {
+-	// We will route messages here later
+-	switch msg.Type {
+-	case "dm":
+-		h.sendDirectMessage(msg)
+-
+-	case "crew":
+-		h.sendCrewMessage(msg)
+-	}
+-}
+-
+ func (h *Hub) Run() {
+ 	for {
+ 		select {
+@@ -144,9 +43,10 @@ func (h *Hub) Run() {
+ 
+ 			// DEBUG
+ 			log.Printf(
+-				"[WS] client registered | total connections=%d | users=%d",
++				"[WS] client registered | total connections=%d | users=%d | userID=%s",
+ 				len(h.clients),
+ 				len(h.users),
++				client.userID,
+ 			)
+ 
+ 		case client := <-h.unregister:
+@@ -160,9 +60,10 @@ func (h *Hub) Run() {
+ 			)
+ 
+ 		case msg := <-h.route:
+-			h.handleMessage(msg)
++			h.routeMessage(msg)
+ 		case data := <-h.broadcast:
+ 			h.handleBroadcast(data)
++			log.Printf("incoming WS payload: %s", string(data))
+ 		}
+ 	}
+ }
+diff --git a/internals/websockets/messages.go b/internals/websockets/messages.go
+index b4f4bb1..e0adc9a 100644
+--- a/internals/websockets/messages.go
++++ b/internals/websockets/messages.go
+@@ -1,15 +1,24 @@
+ package websockets
+ 
++import "time"
++
+ type IncomingMessage struct {
+-	Type       string `json:"type"`
+-	SenderID   string `json:"sender_id"`
+-	ReceiverID string `json:"reciever_id"`
++	Type       string `json:"type"`        // "dm" | "crew"
++	ReceiverID string `json:"receiver_id"` // userID or crewID
+ 	Content    string `json:"content"`
+ }
+ 
+ type OutgoingMessage struct {
+-	Type       string `json:"type"`
+-	SenderID   string `json:"sender_id"`
+-	ReceiverID string `json:"reciever_id"`
+-	Content    string `json:"content"`
++	ID         string    `json:"id"`
++	Type       string    `json:"type"`
++	SenderID   string    `json:"sender_id"`
++	ReceiverID string    `json:"receiver_id"`
++	Content    string    `json:"content"`
++	CreatedAt  time.Time `json:"created_at"`
++}
++
++type AckMessage struct {
++	Type      string `json:"type"` // "ack"
++	MessageID string `json:"message_id"`
++	Status    string `json:"status"` // "sent" | "delivered"
+ }
+diff --git a/internals/websockets/types.go b/internals/websockets/types.go
+new file mode 100644
+index 0000000..c52e729
+--- /dev/null
++++ b/internals/websockets/types.go
+@@ -0,0 +1,12 @@
++package websockets
++
++import "chat-server/internals/transport/dto"
++
++type RouteMessage struct {
++	ID         string
++	MesageType string
++	SenderID   string
++	ReceiverID *string
++	CrewID     *string
++	Payload    *dto.MessageResponse
++}
+diff --git a/router/router.go b/router/router.go
+index 8a9c87d..ee687a1 100644
+--- a/router/router.go
++++ b/router/router.go
+@@ -1,95 +1,115 @@
+ package router
+ 
+ import (
+-	"log"
+-	"net/http"
+-
+-	//my packages
+ 	"chat-server/internals/app"
+ 	"chat-server/internals/handlers/auth"
++	"chat-server/internals/handlers/chathistory"
+ 	"chat-server/internals/handlers/crews"
+ 	"chat-server/internals/handlers/friends"
+-	"chat-server/internals/handlers/messages"
+ 	"chat-server/internals/websockets"
+ 	"chat-server/middleware"
++	"log"
+ 
+ 	// go libraries
++	"net/http"
++
++	"github.com/go-chi/chi/v5"
++	chimw "github.com/go-chi/chi/v5/middleware"
+ 	"github.com/gorilla/handlers" //for the websockets connection
+-	"github.com/gorilla/mux"      //Mux for the routing of private and public pages (user)
++	// "github.com/gorilla/mux"      //Mux for the routing of private and public pages (user)
+ )
+ 
+ func SetUpRouter(app *app.App) http.Handler {
+ 
+ 	//1. Set Up the Router
+-	r := mux.NewRouter()
++	// r := mux.NewRouter()
++	r := chi.NewRouter()
++
++	/* ---------------------------------------------------------
++	   GLOBAL MIDDLEWARE
++	--------------------------------------------------------- */
++	r.Use(chimw.RequestID)
++	r.Use(chimw.RealIP)
++	r.Use(chimw.Logger)
++	r.Use(chimw.Recoverer)
+ 
+ 	/* ---------------------------------------------------------
+ 	   PUBLIC ROUTES (NO AUTH)
+ 	--------------------------------------------------------- */
+ 
+-	api := r.PathPrefix("/api").Subrouter()
+-	apiRouter := api.PathPrefix("/auth").Subrouter()
++	r.Route("/auth", func(r chi.Router) {
++		r.Post("/register", auth.RegisterHandler(app.UserRepo))
++		r.Post("/login", auth.LoginHandler(app.UserRepo))
++		r.Post("/verify-otp", auth.VerifyOtpHandler(app.UserRepo))
++		r.Post("/check-availability", auth.CheckAvailablityHandler)
+ 
+-	apiRouter.HandleFunc("/register", auth.RegisterHandler(app.UserRepo)).Methods("POST")
+-	apiRouter.HandleFunc("/login", auth.LoginHandler(app.UserRepo)).Methods("POST")
+-	apiRouter.HandleFunc("/verify-otp", auth.VerifyOtpHandler(app.UserRepo)).Methods("POST")
+-	apiRouter.HandleFunc("/check-availability", auth.CheckAvailablityHandler).Methods("POST")
++	})
+ 
+ 	/* ---------------------------------------------------------
+ 	   PROTECTED ROUTES (AUTH REQUIRED)
+ 	--------------------------------------------------------- */
+ 
+-	// Crew handlers for creating the instace for the repository for using
++	// handlers for creating the instace for the repository for using
+ 	crewHandler := crews.NewCrewHandler(app.CrewRepo)
+ 	authHandler := auth.NewAuthHandler(app.UserRepo)
+ 	frndHandler := friends.NewFriendHandler(app.FriendRepo, authHandler.UserRepo)
+-	messageHandler := messages.NewMessageHandler(app.MessageRepo)
++	chathistoryHandler := chathistory.NewHandler(app.ChatHistoryService)
+ 
+ 	//Protected Routes
+-	protectedRouter := r.PathPrefix("/").Subrouter()
+-	protectedRouter.Use(middleware.AuthMiddleware)
+-
+-	//Crew
+-	protectedRouter.HandleFunc("/crews", crewHandler.CreateCrew).Methods("POST")
+-	protectedRouter.HandleFunc("/crews", crewHandler.Getcrew).Methods("GET")
+-	protectedRouter.HandleFunc("/crews/{id}", crewHandler.DeleteCrew).Methods("DELETE")
+-	protectedRouter.HandleFunc("/me", authHandler.Me).Methods("GET")
+-
+-	//Friend
+-	protectedRouter.HandleFunc("/friend/request", frndHandler.SendFrndRequest).Methods("POST")
+-	protectedRouter.HandleFunc("/friend/accept", frndHandler.AcceptRequest).Methods("POST")
+-
+-	// Message handlers
+-	protectedRouter.HandleFunc("/get-messages", messageHandler.GetMessage).Methods("GET")
+-
+-	//Conversation
+-	// protectedRouter.HandleFunc("/chat/start", convHandler.StartConversation).Methods("POST")
+-
+-	//logout
+-	protectedRouter.HandleFunc("/logout", auth.LogoutHandler).Methods("POST")
+-
+-	//websockets route
+-	protectedRouter.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
+-		websockets.ServeWS(app.Hub, w, r)
++	r.Route("/api", func(r chi.Router) {
++		r.Use(middleware.AuthMiddleware)
++
++		// Crew
++		r.Post("/crews", crewHandler.CreateCrew)
++		r.Get("/crews", crewHandler.Getcrew)
++		r.Delete("/crew/{id}", crewHandler.DeleteCrew)
++
++		// User
++		r.Get("/me", authHandler.Me)
++
++		// Friend
++		r.Post("/friend/request", frndHandler.SendFrndRequest)
++		r.Post("/friend/accept", frndHandler.AcceptRequest)
++		r.Get("/friends", frndHandler.GetFriends)
++
++		// Chat
++		r.Get("/chats/crew/{crewId}", chathistoryHandler.GetCrewHistory)
++		r.Get("/chats/dm/{userId}", chathistoryHandler.GetDmHistory)
++
++		// r.Poat
++		// WebSocket
++		r.Get("/ws", func(w http.ResponseWriter, r *http.Request) {
++			websockets.ServeWS(app.Hub, app.MessageService, w, r)
++		})
++
++		// Logout
++		r.Post("/logout", auth.LogoutHandler)
+ 	})
+ 
+ 	// DEBUG: show all registered routes
+-	r.Walk(func(route *mux.Route, router *mux.Router, ancestors []*mux.Route) error {
+-		path, _ := route.GetPathTemplate()
+-		methods, _ := route.GetMethods()
+-		log.Printf("ROUTE: %v %v", methods, path)
++	// r.Walk(func(route *mux.Route, router *mux.Router, ancestors []*mux.Route) error {
++	// 	path, _ := route.GetPathTemplate()
++	// 	methods, _ := route.GetMethods()
++	// 	log.Printf("ROUTE: %v %v", methods, path)
++	// 	return nil
++	// })
++	chi.Walk(r, func(method, route string, handler http.Handler, middlewares ...func(http.Handler) http.Handler) error {
++		log.Printf("%s %s\n", method, route)
+ 		return nil
+ 	})
+ 
+ 	// CORS Configuration
+-	allowedOrigins := handlers.AllowedOrigins([]string{
+-		"http://localhost:3000",
+-		"https://milonext.onrender.com",
+-	})
+-	allowedMethods := handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"})
+-	allowedHeaders := handlers.AllowedHeaders([]string{"X-Requested-With", "Content-Type", "Authorization"})
+-	allowedCredentials := handlers.AllowCredentials()
+-
+-	return handlers.CORS(allowedOrigins, allowedMethods, allowedHeaders, allowedCredentials)(r)
++	/* ---------------------------------------------------------
++	   CORS
++	--------------------------------------------------------- */
++	return handlers.CORS(
++		handlers.AllowedOrigins([]string{
++			"http://localhost:3000",
++			"https://milonext.onrender.com",
++		}),
++		handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}),
++		handlers.AllowedHeaders([]string{"X-Requested-With", "content-type", "Content-Type", "Authorization"}),
++		handlers.AllowCredentials(),
++	)(r)
+ 
+ }
+diff --git a/tmp/main b/tmp/main
+index 134d878..bff63f3 100755
+Binary files a/tmp/main and b/tmp/main differ

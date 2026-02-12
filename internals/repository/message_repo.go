@@ -1,40 +1,60 @@
 package repository
 
 import (
-	"chat-server/internals/db"
 	"chat-server/internals/db/models"
+	"context"
+
+	"gorm.io/gorm"
 )
 
 type MessageRepository interface {
-	GetMessagesByCrewID(crewID string, limit int) ([]models.Message, error)
-	SaveMessage(msg *models.Message) error
-	GetMessagesByUserID(userID string, limit int) ([]models.Message, error)
+	SaveMessage(context.Context, *models.Message) error
+	GetDmMessageHistory(userA string, userB string, limit int) ([]models.Message, error)
+	GetCrewMessageHistory(crewID string, limit int) ([]models.Message, error)
 }
 
-type messageRepository struct{}
+type messageRepository struct {
+	db *gorm.DB
+}
 
 // constructor
-func NewMessageRepository() MessageRepository {
-	return &messageRepository{}
+func NewMessageRepository(db *gorm.DB) MessageRepository {
+	return &messageRepository{db: db}
 }
 
-func (r *messageRepository) GetMessagesByCrewID(crewID string, limit int) ([]models.Message, error) {
+// What this does
+// Fetches group chat history
+// Sorted oldest → newest
+// Limit applied
+func (r *messageRepository) GetCrewMessageHistory(crewID string, limit int) ([]models.Message, error) {
 	var messages []models.Message
-
-	result := db.DB.Where("crew_id= ?", crewID).Order("created_at asc").Limit(limit).Find(&messages)
+	result := r.db.Where("crew_id= ?", crewID).Order("created_at asc").Limit(limit).Find(&messages)
 
 	return messages, result.Error
-
 }
 
-func (r *messageRepository) SaveMessage(msg *models.Message) error {
-	return db.DB.Create(msg).Error
+// saves the messages to the database
+// using the ctx for leting is the user is disconnects.
+// if client disconnects if WS closes if request is canceled
+func (r *messageRepository) SaveMessage(ctx context.Context, msg *models.Message) error {
+	return r.db.WithContext(ctx).Create(msg).Error
 }
 
-func (r *messageRepository) GetMessagesByUserID(userID string, limit int) ([]models.Message, error) {
+func (r *messageRepository) GetDmMessageHistory(
+	userA string,
+	userB string,
+	limit int) ([]models.Message, error) {
 	var messages []models.Message
 
-	result := db.DB.Where("user_id = ? ", userID).Order("created_at asc").Limit(limit).Find(&messages)
+	result := r.db.Where(
+		`
+		(sender_id=? AND receiver_id=?)
+		OR 
+		(sender_id= ? AND receiver_id=?)
+		`, userA, userB, userB, userA).
+		Order("created_at asc").
+		Limit(limit).
+		Find(&messages)
 
 	return messages, result.Error
 }
