@@ -48,9 +48,9 @@ func (s *messageService) HandleIncomingMessage(
 	payload IncomingMessage) (*MessageResult, error) {
 
 	//check the payload first
-	// if payload.Type != "message" {
-	// 	return nil, errors.New("invalid message type")
-	// }
+	if payload.Type != "dm" && payload.Type != "crew" {
+		return nil, errors.New("invalid message type")
+	}
 	if payload.Type == "dm" {
 		if payload.ReceiverID == nil || payload.CrewID != nil {
 			return nil, errors.New("invalid message type")
@@ -160,7 +160,7 @@ func (s *messageService) HandleIncomingMessage(
 		return nil, err
 	}
 
-	resp := mapper.ToCrewMessageResponse(msg)
+	resp := mapper.ToCrewMessageResponse(msg, senderID)
 	return &MessageResult{
 		Response:   &resp,
 		SenderID:   senderID,

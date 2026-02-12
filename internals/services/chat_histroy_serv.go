@@ -8,7 +8,7 @@ import (
 )
 
 type ChatHistroyService interface {
-	CrewHistory(crewID string, limit int) ([]dto.MessageResponse, error)
+	CrewHistory(crewID string, currentUser string, limit int) ([]dto.MessageResponse, error)
 	DmHistory(userA string, userB string, limit int) ([]dto.MessageResponse, error)
 }
 
@@ -22,7 +22,7 @@ func NewChatHistoryService(repo repository.MessageRepository) ChatHistroyService
 	}
 }
 
-func (s *chathistroyservice) CrewHistory(crewID string, limit int) ([]dto.MessageResponse, error) {
+func (s *chathistroyservice) CrewHistory(crewID string, currentUser string, limit int) ([]dto.MessageResponse, error) {
 
 	if crewID == "" {
 		return nil, errors.New("crewID is required")
@@ -39,7 +39,7 @@ func (s *chathistroyservice) CrewHistory(crewID string, limit int) ([]dto.Messag
 	var responses []dto.MessageResponse
 
 	for _, msg := range messages {
-		resp := mapper.ToCrewMessageResponse(&msg)
+		resp := mapper.ToCrewMessageResponse(&msg, currentUser)
 		responses = append(responses, resp)
 	}
 	return responses, nil

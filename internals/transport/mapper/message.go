@@ -5,8 +5,8 @@ import (
 	"chat-server/internals/transport/dto"
 )
 
-func ToDMMessageResponse(msg *models.Message, authUserID string) dto.MessageResponse {
-	isMine := msg.SenderID == authUserID
+func ToDMMessageResponse(msg *models.Message, currentUser string) dto.MessageResponse {
+	isMine := msg.SenderID == currentUser
 	return dto.MessageResponse{
 		ID:        msg.ID.String(),
 		Type:      "dm",
@@ -16,12 +16,14 @@ func ToDMMessageResponse(msg *models.Message, authUserID string) dto.MessageResp
 	}
 }
 
-func ToCrewMessageResponse(msg *models.Message) dto.MessageResponse {
+func ToCrewMessageResponse(msg *models.Message, currentUser string) dto.MessageResponse {
+	isMine := msg.SenderID == currentUser
 	return dto.MessageResponse{
 		ID:        msg.ID.String(),
 		Type:      "crew",
 		Content:   *msg.Content,
 		CreatedAt: msg.CreatedAt,
+		IsMine:    &isMine,
 		Sender: &dto.SenderDTO{
 			ID:   msg.SenderID,
 			Name: msg.SenderName,
