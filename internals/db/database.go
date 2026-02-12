@@ -29,20 +29,25 @@ func ConnectToDB() *gorm.DB {
 	log.Println("DATABASE Connection sucessful.")
 
 	//---Run AutoMigrate ---
-	if os.Getenv("APP_ENV") == "local" {
-		if err := DB.AutoMigrate(
-			&models.User{},
-			&models.Account{},
-			&models.Session{},
-			&models.Crew{},
-			&models.Message{},
-			&models.Friends{},
-		); err != nil {
-			log.Fatalf("Migration failed: %v", err)
+	runMig := false
+
+	if runMig {
+		if os.Getenv("APP_ENV") == "local" {
+			if err := DB.AutoMigrate(
+				&models.User{},
+				&models.Account{},
+				&models.Session{},
+				&models.Crew{},
+				&models.Message{},
+				&models.Friends{},
+			); err != nil {
+				log.Fatalf("Migration failed: %v", err)
+			}
+			log.Println("Database migration successful")
+		} else {
+			log.Println("-----Skiping the migration-------")
 		}
-		log.Println("Database migration successful")
-	} else {
-		log.Println("-----Skiping the migration-------")
+
 	}
 
 	return DB

@@ -116,10 +116,7 @@ func (s *messageService) HandleIncomingMessage(
 		//this is the mapper converting the database models into the dto for sending back the response
 		resp := mapper.ToDMMessageResponse(msg, senderID)
 		return &MessageResult{
-			Response:   &resp,
-			SenderID:   senderID,
-			ReceiverID: payload.ReceiverID,
-			CrewID:     nil,
+			Response: &resp,
 		}, nil
 	}
 

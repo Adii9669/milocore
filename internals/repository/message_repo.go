@@ -28,7 +28,12 @@ func NewMessageRepository(db *gorm.DB) MessageRepository {
 // Limit applied
 func (r *messageRepository) GetCrewMessageHistory(crewID string, limit int) ([]models.Message, error) {
 	var messages []models.Message
-	result := r.db.Where("crew_id= ?", crewID).Order("created_at asc").Limit(limit).Find(&messages)
+	result := r.db.
+		Preload("Sender").
+		Where("crew_id= ?", crewID).
+		Order("created_at asc").
+		Limit(limit).
+		Find(&messages)
 
 	return messages, result.Error
 }
@@ -46,13 +51,14 @@ func (r *messageRepository) GetDmMessageHistory(
 	limit int) ([]models.Message, error) {
 	var messages []models.Message
 
-	result := r.db.Where(
-		`
-		(sender_id=? AND receiver_id=?)
-		OR 
-		(sender_id= ? AND receiver_id=?)
-		`, userA, userB, userB, userA).
-		Order("created_at asc").
+	result := r.db.
+		Preload("Sender").
+		Where(
+			"(sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?)",
+			userA, userB,
+			userB, userA,
+		).
+		Order("created_at ASC").
 		Limit(limit).
 		Find(&messages)
 
