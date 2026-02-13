@@ -9,6 +9,7 @@ import (
 	"chat-server/internals/websockets"
 	"chat-server/middleware"
 	"log"
+	"os"
 
 	// go libraries
 	"net/http"
@@ -86,17 +87,12 @@ func SetUpRouter(app *app.App) http.Handler {
 		r.Post("/logout", auth.LogoutHandler)
 	})
 
-	// DEBUG: show all registered routes
-	// r.Walk(func(route *mux.Route, router *mux.Router, ancestors []*mux.Route) error {
-	// 	path, _ := route.GetPathTemplate()
-	// 	methods, _ := route.GetMethods()
-	// 	log.Printf("ROUTE: %v %v", methods, path)
-	// 	return nil
-	// })
-	chi.Walk(r, func(method, route string, handler http.Handler, middlewares ...func(http.Handler) http.Handler) error {
-		log.Printf("%s %s\n", method, route)
-		return nil
-	})
+	if os.Getenv("APP_ENV") == "local" {
+		chi.Walk(r, func(method, route string, handler http.Handler, middlewares ...func(http.Handler) http.Handler) error {
+			log.Printf("%s %s\n", method, route)
+			return nil
+		})
+	}
 
 	// CORS Configuration
 	/* ---------------------------------------------------------
