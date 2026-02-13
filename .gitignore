@@ -2,6 +2,7 @@
 
 #custom
 tmp/
+server
 
 # dependencies
 /node_modules
