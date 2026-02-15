@@ -45,7 +45,11 @@ func VerifyOtpHandler(userRepo repository.UserRepository) http.HandlerFunc {
 
 		// 3. Check if the submitted OTP matches the one in the database.
 		if user.VerifyOTP == nil || *user.VerifyOTP != req.OTP {
-			http.Error(w, "Invalid verification code", http.StatusBadRequest)
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(map[string]string{
+				"message": "Invalid verification code",
+			})
 			return
 		}
 
