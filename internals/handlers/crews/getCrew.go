@@ -4,7 +4,6 @@ import (
 	"chat-server/internals/transport/dto"
 	"chat-server/internals/utils"
 	"chat-server/middleware"
-	"encoding/json"
 
 	// "log"
 	"net/http"
@@ -28,15 +27,6 @@ func (h *CrewHandler) Getcrew(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 3. Handle empty result safely
-	if len(crews) == 0 {
-		// Always return an empty array instead of message
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		utils.PrettyJSON(w, dto.CrewResponse{})
-		return
-	}
-
 	//3.Iterate through the response you got and send only the required response
 	response := make([]dto.CrewResponse, 0)
 	for _, crew := range crews {
@@ -55,6 +45,9 @@ func (h *CrewHandler) Getcrew(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(response)
-
+	// json.NewEncoder(w).Encode(response)
+	utils.PrettyJSON(w, map[string]any{
+		"message": "Crews fetched successfully",
+		"crews":   response,
+	})
 }
