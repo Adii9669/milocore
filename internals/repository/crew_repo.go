@@ -9,11 +9,12 @@ import (
 )
 
 type CrewRepository interface {
-	CreateCrew(crew *models.Crew) error
-	FindForUser(userID string) ([]models.Crew, error)
-	DeleteCrewByID(ownerID uuid.UUID, crewID uuid.UUID) error
+	CreateCrew(ctx context.Context, crew *models.Crew) error
+	FindForUser(ctx context.Context, userID uuid.UUID) ([]models.Crew, error)
+	DeleteCrewByID(ctx context.Context, ownerID uuid.UUID, crewID uuid.UUID) error
 	ExistByID(ctx context.Context, crewID uuid.UUID) (bool, error)
 	IsMember(ctx context.Context, crewID, senderID uuid.UUID) (bool, error)
+	FindByID(ctx context.Context, crewID uuid.UUID) (*models.Crew, error)
 }
 
 type crewRepository struct {
@@ -26,9 +27,9 @@ func NewCrewRepository(db *gorm.DB) CrewRepository {
 }
 
 // create cerw
-func (r *crewRepository) CreateCrew(crew *models.Crew) error {
+func (r *crewRepository) CreateCrew(ctx context.Context, crew *models.Crew) error {
 
-	return r.db.Transaction(func(tx *gorm.DB) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		//1. Create a Crew
 		if err := tx.Create(crew).Error; err != nil {
 			return err
@@ -50,23 +51,23 @@ func (r *crewRepository) CreateCrew(crew *models.Crew) error {
 }
 
 // for FindForUser
-func (r *crewRepository) FindForUser(userID string) ([]models.Crew, error) {
+func (r *crewRepository) FindForUser(ctx context.Context, userID uuid.UUID) ([]models.Crew, error) {
 	var crews []models.Crew
 	var user models.User
 
 	// 1. First, find the user to start the association from.
-	if err := r.db.First(&user, "id = ?", userID).Error; err != nil {
+	if err := r.db.WithContext(ctx).First(&user, "id = ?", userID).Error; err != nil {
 		return nil, err
 	}
 
 	// 2. Now, use Association to find all the 'Crews' linked to that user.
-	err := r.db.Model(&user).Association("Crews").Find(&crews)
+	err := r.db.WithContext(ctx).Model(&user).Association("Crews").Find(&crews)
 	return crews, err
 }
 
 // Delete the crews
-func (r *crewRepository) DeleteCrewByID(ownerID uuid.UUID, crewID uuid.UUID) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
+func (r *crewRepository) DeleteCrewByID(ctx context.Context, ownerID uuid.UUID, crewID uuid.UUID) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 
 		//1. chec owner ship
 		var crew models.Crew
@@ -95,7 +96,7 @@ func (r *crewRepository) DeleteCrewByID(ownerID uuid.UUID, crewID uuid.UUID) err
 func (r *crewRepository) ExistByID(ctx context.Context, crewID uuid.UUID) (bool, error) {
 	var count int64
 
-	err := r.db.WithContext(ctx).Model(&models.Crew{}).Where("id=?", crewID).
+	err := r.db.WithContext(ctx).WithContext(ctx).Model(&models.Crew{}).Where("id=?", crewID).
 		Count(&count).Error
 	if err != nil {
 		return false, err
@@ -116,4 +117,22 @@ func (r *crewRepository) IsMember(ctx context.Context, crewID, senderID uuid.UUI
 	}
 
 	return count > 0, nil
+}
+
+func (r *crewRepository) FindByID(
+	ctx context.Context,
+	crewID uuid.UUID,
+) (*models.Crew, error) {
+
+	var crew models.Crew
+
+	err := r.db.WithContext(ctx).
+		Where("id = ?", crewID).
+		First(&crew).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &crew, nil
 }

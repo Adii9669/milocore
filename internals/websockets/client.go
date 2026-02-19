@@ -85,7 +85,6 @@ func (c *Client) readPump() {
 		//overwrite the senderID and update it to the userid from which the connection was made during the websocket connection
 		//the make single source of truth the server don't have to trust on the payload userID send by the client
 		//this is crusical for security
-
 		c.hub.route <- savedMsg
 
 	}
@@ -97,6 +96,8 @@ func (c *Client) writePump() {
 
 	for {
 		select {
+		//this case if for singnalling when the client disconnects from the server
+		//and using context we can signal our go routine to stop
 		case <-c.ctx.Done():
 			return
 		case msg, ok := <-c.send:
@@ -110,13 +111,3 @@ func (c *Client) writePump() {
 		}
 	}
 }
-
-// func (c *Client) writePump() {
-// 	defer c.conn.Close()
-// 	for msg := range c.send {
-// 		c.conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
-// 		if err := c.conn.WriteMessage(websocket.TextMessage, msg); err != nil {
-// 			return
-// 		}
-// 	}
-// }

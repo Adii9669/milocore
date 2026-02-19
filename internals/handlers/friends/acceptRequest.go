@@ -5,17 +5,16 @@ import (
 	"chat-server/internals/utils"
 	"chat-server/middleware"
 	"encoding/json"
-	"errors"
 	"net/http"
 
 	"github.com/google/uuid"
-	"gorm.io/gorm"
 )
 
 func (h *FriendHandler) AcceptRequest(w http.ResponseWriter, r *http.Request) {
 
+	ctx := r.Context()
 	//1.Auth check the client
-	claims, ok := r.Context().Value(middleware.UserContextKey).(*utils.JWTClaims)
+	claims, ok := ctx.Value(middleware.UserContextKey).(*utils.JWTClaims)
 	if !ok || claims == nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
@@ -34,49 +33,28 @@ func (h *FriendHandler) AcceptRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if body.FriendID == uuid.Nil {
+	friendID := body.FriendID
+
+	if friendID == uuid.Nil {
 		http.Error(w, "FriendRequest ID required", http.StatusBadRequest)
 		return
 	}
 
-	if body.FriendID == userID {
+	if friendID == userID {
 		http.Error(w, "cannot accept your own request", http.StatusBadRequest)
 		return
 	}
 
-	//Ceck the status
-	rel, err := h.FrndRepo.FindRelation(body.FriendID, userID)
+	//Here we call our friendService to do futher task on the request
+	err = h.friendService.AcceptFriendRequest(ctx, userID, friendID)
 	if err != nil {
-		// If no row found: return 404
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			http.Error(w, "Friend request not found", http.StatusNotFound)
-			return
-		}
-		// DB error
-		http.Error(w, "Database error", http.StatusInternalServerError)
-		return
-	}
-	if rel == nil {
-		http.Error(w, "Database Error", http.StatusNotFound)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	if rel.Status != "pending" {
-		if rel.Status == "accepted" {
-			http.Error(w, "Already friends", http.StatusBadRequest)
-			return
-		}
-		http.Error(w, "Invalid request status", http.StatusBadRequest)
-		return
-	}
-
-	// 5) Accept and create reverse accepted row ATOMICALLY
-	if err := h.FrndRepo.AcceptAndCreateReverse(rel, userID); err != nil {
-		// If unique constraint on reverse exists, the repo may return an error.
-		// Surface as 500 for now; you can map DB-specific errors to friendly codes.
-		http.Error(w, "Failed to accept friend request", http.StatusInternalServerError)
-		return
-	}
 	w.Header().Set("Content-Type", "application/json")
-	utils.PrettyJSON(w, map[string]string{"message": "Friend request accepted"})
+	w.WriteHeader(http.StatusOK)
+	utils.PrettyJSON(w, map[string]string{
+		"message": "Friend request accepted",
+	})
 }

@@ -12,6 +12,7 @@ import (
 
 func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 
+	ctx := r.Context()
 	//1.Get the user from context
 	claims, ok := r.Context().Value(middleware.UserContextKey).(*utils.JWTClaims)
 	if !ok {
@@ -27,7 +28,7 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//2.Check the user you go from the key is in database or not
-	user, err := h.UserRepo.FindByID(userID)
+	user, err := h.UserRepo.FindByID(ctx, userID)
 	if err != nil {
 		http.Error(w, "Can't Find the USer", http.StatusNotFound)
 		return

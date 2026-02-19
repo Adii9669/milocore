@@ -81,6 +81,12 @@ func (s *messageService) HandleIncomingMessage(
 		return nil, errors.New("invalid sender Id")
 	}
 
+	//checking the senderID
+	sender, err := s.userRepo.FindByID(ctx, senderUUID)
+	if err != nil {
+		return nil, err
+	}
+
 	// =========================
 	// DM MESSAGE
 	// =========================
@@ -156,7 +162,7 @@ func (s *messageService) HandleIncomingMessage(
 	if err := s.messageRepo.SaveMessage(ctx, msg); err != nil {
 		return nil, err
 	}
-
+	msg.Sender = *sender
 	resp := mapper.ToCrewMessageResponse(msg, senderID)
 	return &MessageResult{
 		Response:   &resp,

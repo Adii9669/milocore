@@ -1,17 +1,13 @@
 package friends
 
-import (
-	"chat-server/internals/repository"
-)
+import "chat-server/internals/services"
 
 type FriendHandler struct {
-	FrndRepo repository.FriendRepository
-	UserRepo repository.UserRepository
+	friendService services.FriendService
 }
 
-func NewFriendHandler(repo repository.FriendRepository, userRepo repository.UserRepository) *FriendHandler {
+func NewFriendHandler(friendService services.FriendService) *FriendHandler {
 	return &FriendHandler{
-		FrndRepo: repo,
-		UserRepo: userRepo,
+		friendService: friendService,
 	}
 }

@@ -13,8 +13,10 @@ import (
 
 func (h *CrewHandler) DeleteCrew(w http.ResponseWriter, r *http.Request) {
 
+	defer r.Body.Close()
 	// 1. Check auth claims
-	claims, ok := r.Context().Value(middleware.UserContextKey).(*utils.JWTClaims)
+	ctx := r.Context()
+	claims, ok := ctx.Value(middleware.UserContextKey).(*utils.JWTClaims)
 	if !ok || claims == nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
@@ -39,12 +41,13 @@ func (h *CrewHandler) DeleteCrew(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 4. Delete the crew
-	err = h.CrewRepo.DeleteCrewByID(userID, crewID)
+	err = h.crewService.DeleteCrew(ctx, userID, crewID)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			http.Error(w, "Crew not found or not allowed", http.StatusForbidden)
 			return
 		}
+
 		http.Error(w, "Failed to delete crew", http.StatusInternalServerError)
 		return
 	}

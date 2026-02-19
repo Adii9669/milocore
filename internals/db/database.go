@@ -39,7 +39,7 @@ func ConnectToDB() *gorm.DB {
 				&models.Session{},
 				&models.Crew{},
 				&models.Message{},
-				&models.Friends{},
+				&models.Friend{},
 			); err != nil {
 				log.Fatalf("Migration failed: %v", err)
 			}

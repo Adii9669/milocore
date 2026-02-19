@@ -4,12 +4,13 @@ import (
 	"chat-server/internals/repository"
 	"chat-server/internals/transport/dto"
 	"chat-server/internals/transport/mapper"
+	"context"
 	"errors"
 )
 
 type ChatHistroyService interface {
-	CrewHistory(crewID string, currentUser string, limit int) ([]dto.MessageResponse, error)
-	DmHistory(userA string, userB string, limit int) ([]dto.MessageResponse, error)
+	CrewHistory(ctx context.Context, crewID string, currentUser string, limit int) ([]dto.MessageResponse, error)
+	DmHistory(ctx context.Context, userA string, userB string, limit int) ([]dto.MessageResponse, error)
 }
 
 type chathistroyservice struct {
@@ -22,7 +23,7 @@ func NewChatHistoryService(repo repository.MessageRepository) ChatHistroyService
 	}
 }
 
-func (s *chathistroyservice) CrewHistory(crewID string, currentUser string, limit int) ([]dto.MessageResponse, error) {
+func (s *chathistroyservice) CrewHistory(ctx context.Context, crewID string, currentUser string, limit int) ([]dto.MessageResponse, error) {
 
 	if crewID == "" {
 		return nil, errors.New("crewID is required")
@@ -31,7 +32,7 @@ func (s *chathistroyservice) CrewHistory(crewID string, currentUser string, limi
 	if limit <= 0 || limit >= 100 {
 		limit = 50
 	}
-	messages, err := s.messageRepo.GetCrewMessageHistory(crewID, limit)
+	messages, err := s.messageRepo.GetCrewMessageHistory(ctx, crewID, limit)
 	if err != nil {
 		return nil, errors.New("Failed to get crew Histroy")
 	}
@@ -45,7 +46,7 @@ func (s *chathistroyservice) CrewHistory(crewID string, currentUser string, limi
 	return responses, nil
 }
 
-func (s *chathistroyservice) DmHistory(userA string, userB string, limit int) ([]dto.MessageResponse, error) {
+func (s *chathistroyservice) DmHistory(ctx context.Context, userA string, userB string, limit int) ([]dto.MessageResponse, error) {
 	if userA == "" || userB == "" {
 		return nil, errors.New("invalid users")
 	}
@@ -58,7 +59,7 @@ func (s *chathistroyservice) DmHistory(userA string, userB string, limit int) ([
 		limit = 50
 	}
 
-	messages, err := s.messageRepo.GetDmMessageHistory(userA, userB, limit)
+	messages, err := s.messageRepo.GetDmMessageHistory(ctx, userA, userB, limit)
 	if err != nil {
 		return nil, errors.New("Failed to get Histroy")
 	}

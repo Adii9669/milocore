@@ -10,11 +10,13 @@ import (
 
 // this is the contract for using the database operation
 type UserRepository interface {
-	FindByID(id uuid.UUID) (*models.User, error)
-	FindByEmail(email string) (*models.User, error)
-	FindBYName(name string) (*models.User, error)
-	Create(user *models.User) error
+	FindByID(ctx context.Context, id uuid.UUID) (*models.User, error)
+	FindByEmail(ctx context.Context, email string) (*models.User, error)
+	FindBYName(ctx context.Context, name string) (*models.User, error)
+	Create(ctx context.Context, user *models.User) error
 	ExistByID(ctx context.Context, userID uuid.UUID) (bool, error)
+
+	FindByIDs(ctx context.Context, ids []uuid.UUID) ([]models.User, error)
 }
 
 // GormUserRepository is the GORM implementation of our repository.
@@ -28,29 +30,34 @@ func NewUserRepository(db *gorm.DB) UserRepository {
 }
 
 // (id)FindByID retrieves a user by their ID from the database.
-func (r *userRepository) FindByID(id uuid.UUID) (*models.User, error) {
+func (r *userRepository) FindByID(ctx context.Context, id uuid.UUID) (*models.User, error) {
+
 	var user models.User
-	err := r.db.First(&user, "id=?", id).Error
-	return &user, err
+	result := r.db.WithContext(ctx).First(&user, "id=?", id)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return &user, nil
 }
 
 // name
-func (r *userRepository) FindBYName(name string) (*models.User, error) {
+func (r *userRepository) FindBYName(ctx context.Context, name string) (*models.User, error) {
 	var user models.User
-	err := r.db.First(&user, "name=?", name).Error
+	err := r.db.WithContext(ctx).First(&user, "name=?", name).Error
 	return &user, err
 }
 
 // FindByEmail retrieves a user by their email from the database.
-func (r *userRepository) FindByEmail(email string) (*models.User, error) {
+func (r *userRepository) FindByEmail(ctx context.Context, email string) (*models.User, error) {
 	var user models.User
-	err := r.db.First(&user, "email = ?", email).Error
+	err := r.db.WithContext(ctx).First(&user, "email = ?", email).Error
 	return &user, err
 }
 
 // Create saves a new user record to the database.
-func (r *userRepository) Create(user *models.User) error {
-	return r.db.Create(user).Error
+func (r *userRepository) Create(ctx context.Context, user *models.User) error {
+	return r.db.WithContext(ctx).Create(user).Error
 }
 
 // ExistByID
@@ -58,10 +65,26 @@ func (r *userRepository) ExistByID(ctx context.Context, id uuid.UUID) (bool, err
 	var count int64
 
 	err := r.db.WithContext(ctx).Model(&models.User{}).Where("id=?", id).Count(&count).Error
-
 	if err != nil {
 		return false, err
 	}
-
 	return count > 0, nil
+}
+
+func (r *userRepository) FindByIDs(
+	ctx context.Context,
+	ids []uuid.UUID,
+) ([]models.User, error) {
+
+	if len(ids) == 0 {
+		return []models.User{}, nil
+	}
+
+	var users []models.User
+
+	err := r.db.WithContext(ctx).
+		Where("id IN ?", ids).
+		Find(&users).Error
+
+	return users, err
 }

@@ -50,9 +50,10 @@ func SetUpRouter(app *app.App) http.Handler {
 	--------------------------------------------------------- */
 
 	// handlers for creating the instace for the repository for using
-	crewHandler := crews.NewCrewHandler(app.CrewRepo)
+	crewHandler := crews.NewCrewHandler(app.CrewService)
 	authHandler := auth.NewAuthHandler(app.UserRepo)
-	frndHandler := friends.NewFriendHandler(app.FriendRepo, authHandler.UserRepo)
+	frndHandler := friends.NewFriendHandler(app.FriendService)
+
 	chathistoryHandler := chathistory.NewHandler(app.ChatHistoryService)
 
 	//Protected Routes

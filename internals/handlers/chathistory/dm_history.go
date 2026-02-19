@@ -11,6 +11,7 @@ import (
 
 func (h *Handler) GetDmHistory(w http.ResponseWriter, r *http.Request) {
 
+	ctx := r.Context()
 	otherUserID := chi.URLParam(r, "userId")
 
 	claims, ok := r.Context().Value(middleware.UserContextKey).(*utils.JWTClaims)
@@ -24,7 +25,7 @@ func (h *Handler) GetDmHistory(w http.ResponseWriter, r *http.Request) {
 	log.Printf("userA %s", otherUserID)
 	log.Printf("userB %s", authUserID)
 
-	messages, err := h.service.DmHistory(authUserID, otherUserID, 50)
+	messages, err := h.service.DmHistory(ctx, authUserID, otherUserID, 50)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return

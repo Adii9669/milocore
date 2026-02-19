@@ -2,19 +2,22 @@ package models
 
 import (
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type User struct {
-	ID               string  `gorm:"type:uuid;primary_key;default:uuid_generate_v4()"`
-	Name             *string `gorm:"unique"`
-	PasswordHash     *string
-	Email            *string `gorm:"uniqueIndex"`
-	Image            *string
-	Verified         bool    `gorm:"default:false"`
-	VerifyOTP        *string `gorm:"column:verify_otp"`
-	VerificationCode string
-	UpdatedAt        time.Time
-	CreatedAt        time.Time
+	ID           uuid.UUID `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()"`
+	Name         string    `gorm:"uniqueIndex;not null"`
+	PasswordHash *string
+	Email        string `gorm:"uniqueIndex;not null"`
+	Image        *string
+
+	Verified  bool    `gorm:"default:false"`
+	VerifyOTP *string `gorm:"column:verify_otp"`
+
+	UpdatedAt time.Time
+	CreatedAt time.Time
 
 	//relation
 	Accounts   []Account `gorm:"foreignKey:UserID"`
@@ -55,10 +58,5 @@ type Session struct {
 // GetID should implement the interface by returning the user's ID.
 // An ID is almost never optional, so we return a plain string.
 func (u User) GetID() string {
-	return u.ID
-}
-
-// GetName should implement the interface by returning the user's name.
-func (u User) GetName() *string {
-	return u.Name
+	return u.ID.String()
 }

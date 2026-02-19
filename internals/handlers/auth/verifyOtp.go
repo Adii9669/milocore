@@ -18,6 +18,7 @@ import (
 func VerifyOtpHandler(userRepo repository.UserRepository) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
+		ctx := r.Context()
 		//take the request and check it
 		var req requests.VerifyOtpRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -26,7 +27,7 @@ func VerifyOtpHandler(userRepo repository.UserRepository) http.HandlerFunc {
 		}
 
 		//request verified now check the details in it
-		user, err := userRepo.FindByEmail(req.Email)
+		user, err := userRepo.FindByEmail(ctx, req.Email)
 		log.Printf("Finding the user %v", user)
 		if err != nil {
 			if err == gorm.ErrRecordNotFound {
@@ -63,14 +64,14 @@ func VerifyOtpHandler(userRepo repository.UserRepository) http.HandlerFunc {
 		}
 
 		//parsing the uuid which is stored in string type in jwt
-		userID, err := uuid.Parse(user.ID)
+		userID, err := uuid.Parse(user.ID.String())
 		if err != nil {
 			http.Error(w, "Invalid user ID format", http.StatusInternalServerError)
 			return
 		}
 
 		// 5. Generate a JWT using your utility function.
-		tokenString, err := utils.GenerateToken(userID, *user.Name) // Use your function
+		tokenString, err := utils.GenerateToken(userID, user.Name) // Use your function
 		if err != nil {
 			http.Error(w, "Failed to create token", http.StatusInternalServerError)
 			return

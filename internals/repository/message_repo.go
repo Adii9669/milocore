@@ -9,8 +9,8 @@ import (
 
 type MessageRepository interface {
 	SaveMessage(context.Context, *models.Message) error
-	GetDmMessageHistory(userA string, userB string, limit int) ([]models.Message, error)
-	GetCrewMessageHistory(crewID string, limit int) ([]models.Message, error)
+	GetDmMessageHistory(ctx context.Context, userA string, userB string, limit int) ([]models.Message, error)
+	GetCrewMessageHistory(ctx context.Context, crewID string, limit int) ([]models.Message, error)
 }
 
 type messageRepository struct {
@@ -26,9 +26,10 @@ func NewMessageRepository(db *gorm.DB) MessageRepository {
 // Fetches group chat history
 // Sorted oldest → newest
 // Limit applied
-func (r *messageRepository) GetCrewMessageHistory(crewID string, limit int) ([]models.Message, error) {
+func (r *messageRepository) GetCrewMessageHistory(ctx context.Context, crewID string, limit int) ([]models.Message, error) {
 	var messages []models.Message
 	result := r.db.
+		WithContext(ctx).
 		Preload("Sender").
 		Where("crew_id= ?", crewID).
 		Order("created_at asc").
@@ -46,12 +47,14 @@ func (r *messageRepository) SaveMessage(ctx context.Context, msg *models.Message
 }
 
 func (r *messageRepository) GetDmMessageHistory(
+	ctx context.Context,
 	userA string,
 	userB string,
 	limit int) ([]models.Message, error) {
 	var messages []models.Message
 
 	result := r.db.
+		WithContext(ctx).
 		Preload("Sender").
 		Where(
 			"(sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?)",
