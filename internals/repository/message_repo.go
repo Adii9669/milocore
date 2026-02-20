@@ -3,14 +3,22 @@ package repository
 import (
 	"chat-server/internals/db/models"
 	"context"
+	"slices"
+	"time"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
 type MessageRepository interface {
 	SaveMessage(context.Context, *models.Message) error
 	GetDmMessageHistory(ctx context.Context, userA string, userB string, limit int) ([]models.Message, error)
-	GetCrewMessageHistory(ctx context.Context, crewID string, limit int) ([]models.Message, error)
+	GetCrewMessageHistory(
+		ctx context.Context,
+		crewID uuid.UUID,
+		limit int,
+		cursor *time.Time,
+	) ([]models.Message, error)
 }
 
 type messageRepository struct {
@@ -26,17 +34,37 @@ func NewMessageRepository(db *gorm.DB) MessageRepository {
 // Fetches group chat history
 // Sorted oldest → newest
 // Limit applied
-func (r *messageRepository) GetCrewMessageHistory(ctx context.Context, crewID string, limit int) ([]models.Message, error) {
+func (r *messageRepository) GetCrewMessageHistory(
+	ctx context.Context,
+	crewID uuid.UUID,
+	limit int,
+	cursor *time.Time,
+) ([]models.Message, error) {
+
 	var messages []models.Message
-	result := r.db.
+
+	query := r.db.
 		WithContext(ctx).
 		Preload("Sender").
-		Where("crew_id= ?", crewID).
-		Order("created_at asc").
-		Limit(limit).
-		Find(&messages)
+		Where("crew_id= ?", crewID)
 
-	return messages, result.Error
+	if cursor != nil {
+		query = query.Where("created_at < ?", *cursor)
+	}
+
+	err := query.
+		Order("created_at Desc").
+		Limit(limit).
+		Find(&messages).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	// Reverse in memory so frontend gets ASC order
+	slices.Reverse(messages)
+
+	return messages, nil
 }
 
 // saves the messages to the database

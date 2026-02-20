@@ -105,7 +105,7 @@ func LoginHandler(userRepo repository.UserRepository) http.HandlerFunc {
 
 		if isProduction {
 			// local dev, no HTTPS normally
-			sameSite = http.SameSiteNoneMode
+			sameSite = http.SameSiteLaxMode
 			secure = true
 		}
 		//7. Set and secure the token in the cookies

@@ -6,11 +6,26 @@ import (
 	"chat-server/internals/transport/mapper"
 	"context"
 	"errors"
+	"time"
+
+	"github.com/google/uuid"
 )
 
 type ChatHistroyService interface {
-	CrewHistory(ctx context.Context, crewID string, currentUser string, limit int) ([]dto.MessageResponse, error)
-	DmHistory(ctx context.Context, userA string, userB string, limit int) ([]dto.MessageResponse, error)
+	CrewHistory(
+		ctx context.Context,
+		crewID uuid.UUID,
+		currentUser string,
+		limit int,
+		cursor *time.Time,
+	) ([]dto.MessageResponse, error)
+
+	DmHistory(
+		ctx context.Context,
+		userA string,
+		userB string,
+		limit int,
+	) ([]dto.MessageResponse, error)
 }
 
 type chathistroyservice struct {
@@ -23,16 +38,18 @@ func NewChatHistoryService(repo repository.MessageRepository) ChatHistroyService
 	}
 }
 
-func (s *chathistroyservice) CrewHistory(ctx context.Context, crewID string, currentUser string, limit int) ([]dto.MessageResponse, error) {
-
-	if crewID == "" {
-		return nil, errors.New("crewID is required")
-	}
+func (s *chathistroyservice) CrewHistory(
+	ctx context.Context,
+	crewID uuid.UUID,
+	currentUser string,
+	limit int,
+	cursor *time.Time,
+) ([]dto.MessageResponse, error) {
 
 	if limit <= 0 || limit >= 100 {
 		limit = 50
 	}
-	messages, err := s.messageRepo.GetCrewMessageHistory(ctx, crewID, limit)
+	messages, err := s.messageRepo.GetCrewMessageHistory(ctx, crewID, limit, cursor)
 	if err != nil {
 		return nil, errors.New("Failed to get crew Histroy")
 	}
