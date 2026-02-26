@@ -30,9 +30,28 @@ func normalizePair(a, b uuid.UUID) (uuid.UUID, uuid.UUID) {
 }
 
 type FriendService interface {
-	SendFriendRequest(ctx context.Context, senderID uuid.UUID, targetID uuid.UUID) error
-	AcceptFriendRequest(ctx context.Context, userID, otherID uuid.UUID) error
-	GetFriends(ctx context.Context, userID uuid.UUID) ([]dto.FriendResponse, error)
+	SendFriendRequest(
+		ctx context.Context,
+		senderID uuid.UUID,
+		targetID uuid.UUID,
+	) error
+
+	AcceptFriendRequest(
+		ctx context.Context,
+		userID,
+		otherID uuid.UUID,
+	) error
+
+	GetFriends(
+		ctx context.Context,
+		userID uuid.UUID,
+	) ([]dto.FriendResponse, error)
+
+	RemoveFriend(
+		ctx context.Context,
+		userID uuid.UUID,
+		friendID uuid.UUID,
+	) error
 }
 
 type friendService struct {
@@ -145,4 +164,24 @@ func (s *friendService) GetFriends(
 	}
 
 	return result, nil
+}
+
+func (s *friendService) RemoveFriend(
+	ctx context.Context,
+	userID uuid.UUID,
+	frienID uuid.UUID,
+) error {
+
+	low, high := normalizePair(userID, frienID)
+
+	friendship, err := s.frndRepo.GetRelation(ctx, low, high)
+	if err != nil {
+		return errors.New("friendship not found")
+	}
+
+	if friendship.Status != "accepted" {
+		return errors.New("cannot remove non-accepted relation")
+	}
+
+	return s.frndRepo.Delete(ctx, low, high)
 }

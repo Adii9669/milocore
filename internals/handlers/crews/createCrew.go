@@ -1,35 +1,28 @@
 package crews
 
 import (
+	"chat-server/internals/middleware"
 	"chat-server/internals/requests"
 	"chat-server/internals/utils"
-	"chat-server/middleware"
 	"encoding/json"
 	"log"
 	"net/http"
-
-	"github.com/google/uuid"
 )
 
 func (h *CrewHandler) CreateCrew(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	//1.get the authentication id
 	ctx := r.Context()
-	claims, ok := ctx.Value(middleware.UserContextKey).(*utils.JWTClaims)
-	if !ok || claims == nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
 
 	//2. Decode the body of the request
-	var req requests.CreateCrewRequest
+	var req requests.CrewRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid Body Request", http.StatusBadRequest)
 		return
 	}
 
 	//parsing the jwtclaims userid (stored in the stirng type) to uuid format
-	ownerID, err := uuid.Parse(claims.UserID)
+	ownerID, err := middleware.GetUserIDFromContext(ctx)
 	if err != nil {
 		http.Error(w, "Invalid user ID in token", http.StatusUnauthorized)
 		return

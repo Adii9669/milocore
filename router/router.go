@@ -6,8 +6,8 @@ import (
 	"chat-server/internals/handlers/chathistory"
 	"chat-server/internals/handlers/crews"
 	"chat-server/internals/handlers/friends"
+	"chat-server/internals/middleware"
 	"chat-server/internals/websockets"
-	"chat-server/middleware"
 	"log"
 
 	// go libraries
@@ -61,9 +61,16 @@ func SetUpRouter(app *app.App) http.Handler {
 		r.Use(middleware.AuthMiddleware)
 
 		// Crew
-		r.Post("/crews", crewHandler.CreateCrew)
+		r.Post("/crew/create", crewHandler.CreateCrew)
 		r.Get("/crews", crewHandler.Getcrew)
-		r.Delete("/crew/{id}", crewHandler.DeleteCrew)
+		r.Delete("/crew/{crewID}", crewHandler.DeleteCrew)
+		r.Put("/crew/{crewID}", crewHandler.RenameCrew)
+
+		//member
+		r.Get("/{crewID}/members", crewHandler.GetMembers)
+		r.Post("/crew/{crewID}/member/{memberID}", crewHandler.AddMember)
+		r.Delete("/crew/{crewID}/member/{memberID}", crewHandler.RemoveMember)
+		r.Put("/crew/{crewID}/member/{memberID}/role", crewHandler.UpdateRole)
 
 		// User
 		r.Get("/me", authHandler.Me)
@@ -72,6 +79,7 @@ func SetUpRouter(app *app.App) http.Handler {
 		r.Post("/friend/request", frndHandler.SendFrndRequest)
 		r.Post("/friend/accept", frndHandler.AcceptRequest)
 		r.Get("/friends", frndHandler.GetFriends)
+		r.Delete("/friend/remove/{friendID}", frndHandler.RemoveFriend)
 
 		// Chat
 		r.Get("/chats/crew/{crewId}", chathistoryHandler.GetCrewHistory)

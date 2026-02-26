@@ -1,39 +1,30 @@
 package crews
 
 import (
+	"chat-server/internals/middleware"
 	"chat-server/internals/utils"
-	"chat-server/middleware"
-	"log"
+	"fmt"
 	"net/http"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	"github.com/gorilla/mux"
 	"gorm.io/gorm"
 )
 
 func (h *CrewHandler) DeleteCrew(w http.ResponseWriter, r *http.Request) {
 
 	defer r.Body.Close()
-	// 1. Check auth claims
 	ctx := r.Context()
-	claims, ok := ctx.Value(middleware.UserContextKey).(*utils.JWTClaims)
-	if !ok || claims == nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	log.Print("HI")
 
 	// 2. Parse user ID
-	userID, err := uuid.Parse(claims.UserID)
+	userID, err := middleware.GetUserIDFromContext(ctx)
 	if err != nil {
 		http.Error(w, "Invalid User ID", http.StatusBadRequest)
 		return
 	}
 
 	// 3. Extract crew ID using Gorilla Mux
-	vars := mux.Vars(r)
-	crewIDStr := vars["id"]
+	crewIDStr := chi.URLParam(r, "crewID")
 	crewID, err := uuid.Parse(crewIDStr)
 	if err != nil {
 		http.Error(w, "Invalid Crew ID", http.StatusBadRequest)
@@ -41,13 +32,14 @@ func (h *CrewHandler) DeleteCrew(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 4. Delete the crew
-	err = h.crewService.DeleteCrew(ctx, userID, crewID)
+	err = h.crewService.DeleteCrew(ctx, crewID, userID)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			http.Error(w, "Crew not found or not allowed", http.StatusForbidden)
+			http.Error(w, "Crew not found", http.StatusForbidden)
 			return
 		}
 
+		fmt.Printf("Error while deleting....", err)
 		http.Error(w, "Failed to delete crew", http.StatusInternalServerError)
 		return
 	}

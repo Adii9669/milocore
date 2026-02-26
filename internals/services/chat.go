@@ -22,9 +22,10 @@ type ChatHistroyService interface {
 
 	DmHistory(
 		ctx context.Context,
-		userA string,
-		userB string,
+		userA uuid.UUID,
+		userB uuid.UUID,
 		limit int,
+		cursor *time.Time,
 	) ([]dto.MessageResponse, error)
 }
 
@@ -49,7 +50,8 @@ func (s *chathistroyservice) CrewHistory(
 	if limit <= 0 || limit >= 100 {
 		limit = 50
 	}
-	messages, err := s.messageRepo.GetCrewMessageHistory(ctx, crewID, limit, cursor)
+	messages, err := s.messageRepo.GetCrewMessageHistory(
+		ctx, crewID, limit, cursor)
 	if err != nil {
 		return nil, errors.New("Failed to get crew Histroy")
 	}
@@ -63,8 +65,15 @@ func (s *chathistroyservice) CrewHistory(
 	return responses, nil
 }
 
-func (s *chathistroyservice) DmHistory(ctx context.Context, userA string, userB string, limit int) ([]dto.MessageResponse, error) {
-	if userA == "" || userB == "" {
+func (s *chathistroyservice) DmHistory(
+	ctx context.Context,
+	userA uuid.UUID,
+	userB uuid.UUID,
+	limit int,
+	cursor *time.Time,
+) ([]dto.MessageResponse, error) {
+
+	if userA == uuid.Nil || userB == uuid.Nil {
 		return nil, errors.New("invalid users")
 	}
 
@@ -76,7 +85,8 @@ func (s *chathistroyservice) DmHistory(ctx context.Context, userA string, userB 
 		limit = 50
 	}
 
-	messages, err := s.messageRepo.GetDmMessageHistory(ctx, userA, userB, limit)
+	messages, err := s.messageRepo.GetDmMessageHistory(
+		ctx, userA, userB, limit, cursor)
 	if err != nil {
 		return nil, errors.New("Failed to get Histroy")
 	}
@@ -85,7 +95,7 @@ func (s *chathistroyservice) DmHistory(ctx context.Context, userA string, userB 
 	var responses []dto.MessageResponse
 
 	for _, msg := range messages {
-		resp := mapper.ToDMMessageResponse(&msg, userA)
+		resp := mapper.ToDMMessageResponse(&msg, userA.String())
 		responses = append(responses, resp)
 	}
 

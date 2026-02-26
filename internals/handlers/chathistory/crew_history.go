@@ -1,9 +1,9 @@
 package chathistory
 
 import (
+	"chat-server/internals/middleware"
 	"chat-server/internals/transport/dto"
 	"chat-server/internals/utils"
-	"chat-server/middleware"
 	"net/http"
 	"strconv"
 	"time"
@@ -21,13 +21,7 @@ type PaginatedMessageResponse struct {
 func (h *Handler) GetCrewHistory(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
-	claims, ok := r.Context().Value(middleware.UserContextKey).(*utils.JWTClaims)
-	if !ok {
-		http.Error(w, "Not a valid User", http.StatusInternalServerError)
-		return
-	}
-
-	userID, err := uuid.Parse(claims.UserID)
+	userID, err := middleware.GetUserIDFromContext(ctx)
 	if err != nil {
 		http.Error(w, "Invalid User ID", http.StatusUnauthorized)
 		return

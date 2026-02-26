@@ -20,17 +20,3 @@ type Friend struct {
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
-
-// type Friends struct {
-// 	ID uuid.UUID `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()"`
-//
-// 	UserID   uuid.UUID `gorm:"type:uuid;uniqueIndex:idx_user_friend"`
-// 	FriendID uuid.UUID `gorm:"type:uuid;uniqueIndex:idx_user_friend"`
-// 	Status   string    `gorm:"type:varchar(20);default:'pending'"`
-//
-// 	User   User `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE"`
-// 	Friend User `gorm:"foreignKey:FriendID;constraint:OnDelete:CASCADE"`
-//
-// 	CreatedAt time.Time
-// 	UpdatedAt time.Time
-// }

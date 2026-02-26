@@ -1,9 +1,9 @@
 package friends
 
 import (
+	"chat-server/internals/middleware"
 	"chat-server/internals/requests"
 	"chat-server/internals/utils"
-	"chat-server/middleware"
 	"encoding/json"
 	"net/http"
 
@@ -13,14 +13,7 @@ import (
 func (h *FriendHandler) AcceptRequest(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
-	//1.Auth check the client
-	claims, ok := ctx.Value(middleware.UserContextKey).(*utils.JWTClaims)
-	if !ok || claims == nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	userID, err := uuid.Parse(claims.UserID)
+	userID, err := middleware.GetUserIDFromContext(ctx)
 	if err != nil {
 		http.Error(w, "Invalid user id token", http.StatusUnauthorized)
 		return

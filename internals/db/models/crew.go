@@ -5,6 +5,14 @@ import (
 	"time"
 )
 
+type CrewRole string
+
+const (
+	RoleOwner  CrewRole = "owner"
+	RoleAdmin  CrewRole = "admin"
+	RoleMember CrewRole = "member"
+)
+
 // crew
 type Crew struct {
 	ID          uuid.UUID `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()"`
@@ -17,23 +25,31 @@ type Crew struct {
 
 	//Metadata
 	CreatedAt time.Time
-	UpdateAt  time.Time
+	UpdatedAt time.Time
 
 	//Relation (for GORM to fetch data)
-	Owner    User      `gorm:"foreignKey:OwnerID"`
-	Members  []User    `gorm:"many2many:crew_members;constraint:OnDelete:CASCADE;"`
-	Messages []Message `gorm:"foreignKey:CrewID;constraint:OnDelete:CASCADE;"`
+	Owner    User         `gorm:"foreignKey:OwnerID"`
+	Members  []CrewMember `gorm:"foreignKey:CrewID;constraint:OnDelete:CASCADE;"`
+	Messages []Message    `gorm:"foreignKey:CrewID;constraint:OnDelete:CASCADE;"`
 }
 
 type CrewMember struct {
-	ID     uuid.UUID `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()"`
-	CrewID uuid.UUID `gorm:"type:uuid;not null;index"`
-	UserID uuid.UUID `gorm:"type:uuid;not null;index"`
+	CrewID uuid.UUID `gorm:"type:uuid;primaryKey"`
+	UserID uuid.UUID `gorm:"type:uuid;primaryKey"`
 
-	Role     string    `gorm:"not null;default:member"`
+	Role     CrewRole  `gorm:"type:varchar(20);not null;default:member"`
 	JoinedAt time.Time `gorm:"autoCreateTime"`
 	MutedTil *time.Time
 
 	Crew Crew `gorm:"foreignKey:CrewID"`
 	User User `gorm:"foreignKey:UserID"`
+}
+
+func (r CrewRole) IsValid() bool {
+	switch r {
+	case RoleOwner, RoleAdmin, RoleMember:
+		return true
+	default:
+		return false
+	}
 }

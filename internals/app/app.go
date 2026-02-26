@@ -57,6 +57,7 @@ func NewApp(
 			repository.NewFriendRepository(db),
 		),
 		CrewService: services.NewCrewService(
+			db,
 			repository.NewCrewRepository(db),
 			repository.NewUserRepository(db),
 		),
