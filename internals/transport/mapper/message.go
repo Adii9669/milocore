@@ -26,7 +26,7 @@ func ToCrewMessageResponse(msg *models.Message, currentUser string) dto.MessageR
 		IsMine:    &isMine,
 		Sender: &dto.SenderDTO{
 			ID:   msg.SenderID,
-			Name: *msg.Sender.Name,
+			Name: msg.Sender.Name,
 		},
 	}
 }

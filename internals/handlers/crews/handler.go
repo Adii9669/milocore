@@ -1,15 +1,15 @@
 package crews
 
 import (
-	"chat-server/internals/repository"
+	"chat-server/internals/services"
 )
 
 type CrewHandler struct {
-	CrewRepo repository.CrewRepository
+	crewService services.CrewService
 }
 
-func NewCrewHandler(repo repository.CrewRepository) *CrewHandler {
+func NewCrewHandler(crewService services.CrewService) *CrewHandler {
 	return &CrewHandler{
-		CrewRepo: repo,
+		crewService: crewService,
 	}
 }

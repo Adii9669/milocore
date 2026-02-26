@@ -11,14 +11,14 @@ type Message struct {
 
 	SenderID   string  `gorm:"type:uuid;not null;idx_sender_created"`
 	Sender     User    `gorm:"foreignKey:SenderID;references:ID"`
-	ReceiverID *string `gorm:"type:uuid;idx_receiver_created"`
+	ReceiverID *string `gorm:"type:uuid;index:idx_receiver_created,priority:1"`
 
-	CrewID *string `gorm:"type:uuid;index:idx_crew_chat,priority:1"`
+	CrewID *string `gorm:"type:uuid;index:idx_crew_created,priority:1"`
 
 	Content   *string `gorm:"type:text;not null"`
 	Delivered bool    `gorm:"default:false;index"`
 	Read      bool    `gorm:"default:false;index"`
 
-	CreatedAt time.Time
+	CreatedAt time.Time `gorm:"index:idx_crew_created,priority:2;index:idx_receiver_created,priority:2"`
 	UpdatedAt time.Time
 }

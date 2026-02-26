@@ -1,53 +1,74 @@
 package crews
 
 import (
-	"chat-server/internals/transport/dto"
+	"chat-server/internals/middleware"
 	"chat-server/internals/utils"
-	"chat-server/middleware"
 
 	// "log"
 	"net/http"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 )
 
 func (h *CrewHandler) Getcrew(w http.ResponseWriter, r *http.Request) {
 
+	defer r.Body.Close()
 	//1. always get the claims first authentication from middleware
-	claims, ok := r.Context().Value(middleware.UserContextKey).(*utils.JWTClaims)
-	if !ok || claims == nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+	ctx := r.Context()
+	userID, err := middleware.GetUserIDFromContext(ctx)
+	if err != nil {
+		http.Error(w, "Invalid ID", http.StatusBadRequest)
 		return
 	}
-	// log.Printf("DEBUG: Handling request for UserID: %s", claims.UserID)
 
-	//2. check the user name from the details is that exist or not
-	crews, err := h.CrewRepo.FindForUser(claims.UserID)
-	// log.Printf("USEr BY username %v", crews)
+	response, err := h.crewService.GetCrews(ctx, userID)
 	if err != nil {
 		http.Error(w, "Failed to retrive the Crew", http.StatusUnauthorized)
 		return
 	}
 
-	//3.Iterate through the response you got and send only the required response
-	response := make([]dto.CrewResponse, 0)
-	for _, crew := range crews {
-		response = append(response, dto.CrewResponse{
-			ID:        crew.ID,
-			Name:      crew.Name,
-			OwnerID:   crew.OwnerID,
-			CreatedAt: crew.CreatedAt,
-		})
-
-	}
-
-	//debugJSON
-	// debugJSON, _ := json.MarshalIndent(response, "", "  ")
-	// log.Printf("DEBUG: Sending response: \n%s", string(debugJSON))
-
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	// json.NewEncoder(w).Encode(response)
 	utils.PrettyJSON(w, map[string]any{
 		"message": "Crews fetched successfully",
 		"crews":   response,
+	})
+}
+
+func (h *CrewHandler) GetMembers(w http.ResponseWriter, r *http.Request) {
+
+	defer r.Body.Close()
+	//1. always get the claims first authentication from middleware
+	ctx := r.Context()
+	userID, err := middleware.GetUserIDFromContext(ctx)
+	if err != nil {
+		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		return
+	}
+
+	crewIDStr := chi.URLParam(r, "crewID")
+	crewID, err := uuid.Parse(crewIDStr)
+	if err != nil {
+		http.Error(w, "Invalid user ID", http.StatusBadRequest)
+		return
+	}
+
+	// var req requests.GetMembers
+	// if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	// 	http.Error(w, "Invalid user ID", http.StatusBadRequest)
+	// 	return
+	// }
+
+	response, err := h.crewService.GetMembers(ctx, crewID, userID)
+	if err != nil {
+		http.Error(w, "Failed to retrive the Crew", http.StatusUnauthorized)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	utils.PrettyJSON(w, map[string]any{
+		"members": response,
 	})
 }

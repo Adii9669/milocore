@@ -2,6 +2,7 @@ package repository
 
 import (
 	"chat-server/internals/db/models"
+	"context"
 	"errors"
 
 	"github.com/google/uuid"
@@ -10,10 +11,10 @@ import (
 
 type Conversation interface {
 	// Returns existing conv between two users (unordered)
-	FindConvBetween(a, b uuid.UUID) (*models.Conversation, error)
-	FindConvByID(id uuid.UUID) (*models.Conversation, error)
-	GetMessages(convID uuid.UUID, limit, offset int) ([]models.Message, error)
-	SaveMessage(msg *models.Message) error
+	FindConvBetween(ctx context.Context, a, b uuid.UUID) (*models.Conversation, error)
+	FindConvByID(ctx context.Context, id uuid.UUID) (*models.Conversation, error)
+	GetMessages(ctx context.Context, convID uuid.UUID, limit, offset int) ([]models.Message, error)
+	SaveMessage(ctx context.Context, msg *models.Message) error
 }
 
 type convoRepository struct {
@@ -33,12 +34,12 @@ func orderPair(a, b uuid.UUID) (uuid.UUID, uuid.UUID) {
 }
 
 // FindconvBetween
-func (r *convoRepository) FindConvBetween(a, b uuid.UUID) (*models.Conversation, error) {
+func (r *convoRepository) FindConvBetween(ctx context.Context, a, b uuid.UUID) (*models.Conversation, error) {
 	user1, user2 := orderPair(a, b)
 
 	var convo models.Conversation
 
-	err := r.db.Where("user1_id = ? and user2_id = ?", user1, user2).First(&convo).Error
+	err := r.db.WithContext(ctx).Where("user1_id = ? and user2_id = ?", user1, user2).First(&convo).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
@@ -47,9 +48,9 @@ func (r *convoRepository) FindConvBetween(a, b uuid.UUID) (*models.Conversation,
 }
 
 // FindBYID
-func (r *convoRepository) FindConvByID(id uuid.UUID) (*models.Conversation, error) {
+func (r *convoRepository) FindConvByID(ctx context.Context, id uuid.UUID) (*models.Conversation, error) {
 	var conv models.Conversation
-	err := r.db.Where("id = ?", id).First(&conv).Error
+	err := r.db.WithContext(ctx).Where("id = ?", id).First(&conv).Error
 
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
@@ -59,7 +60,7 @@ func (r *convoRepository) FindConvByID(id uuid.UUID) (*models.Conversation, erro
 }
 
 // GetMessages
-func (r *convoRepository) GetMessages(convID uuid.UUID, limit, offset int) ([]models.Message, error) {
+func (r *convoRepository) GetMessages(ctx context.Context, convID uuid.UUID, limit, offset int) ([]models.Message, error) {
 	var msgs []models.Message
 
 	if limit <= 0 {
@@ -70,6 +71,7 @@ func (r *convoRepository) GetMessages(convID uuid.UUID, limit, offset int) ([]mo
 	}
 
 	err := r.db.
+		WithContext(ctx).
 		Where("conversation_id = ?", convID).
 		Order("created_at DESC").
 		Limit(limit).
@@ -80,7 +82,7 @@ func (r *convoRepository) GetMessages(convID uuid.UUID, limit, offset int) ([]mo
 }
 
 // SaveMessage
-func (r *convoRepository) SaveMessage(msg *models.Message) error {
+func (r *convoRepository) SaveMessage(ctx context.Context, msg *models.Message) error {
 	msg.ID = uuid.New()
-	return r.db.Create(msg).Error
+	return r.db.WithContext(ctx).Create(msg).Error
 }

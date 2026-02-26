@@ -4,30 +4,21 @@ import (
 	"net/http"
 
 	//internals
+	"chat-server/internals/middleware"
 	"chat-server/internals/utils"
-	"chat-server/middleware"
-
-	"github.com/google/uuid"
 )
 
 func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 
-	//1.Get the user from context
-	claims, ok := r.Context().Value(middleware.UserContextKey).(*utils.JWTClaims)
-	if !ok {
-		http.Error(w, "Could not retrive the data from the Context ", http.StatusInternalServerError)
-		return
-	}
-
-	//converting the user id (string) -> uuid
-	userID, err := uuid.Parse(claims.UserID)
+	ctx := r.Context()
+	userID, err := middleware.GetUserIDFromContext(ctx)
 	if err != nil {
-		http.Error(w, "Invalid User ID", http.StatusUnauthorized)
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
 	//2.Check the user you go from the key is in database or not
-	user, err := h.UserRepo.FindByID(userID)
+	user, err := h.UserRepo.FindByID(ctx, userID)
 	if err != nil {
 		http.Error(w, "Can't Find the USer", http.StatusNotFound)
 		return

@@ -36,6 +36,7 @@ func isEmail(e string) bool {
 func LoginHandler(userRepo repository.UserRepository) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
+		ctx := r.Context()
 		//1.Decode the incoming request
 		var req requests.Credentials
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -55,9 +56,9 @@ func LoginHandler(userRepo repository.UserRepository) http.HandlerFunc {
 		var err error
 
 		if isEmail(req.Username) {
-			user, err = userRepo.FindByEmail(req.Username)
+			user, err = userRepo.FindByEmail(ctx, req.Username)
 		} else {
-			user, err = userRepo.FindBYName(req.Username)
+			user, err = userRepo.FindBYName(ctx, req.Username)
 		}
 		if err != nil {
 			if err == gorm.ErrRecordNotFound {
@@ -85,14 +86,14 @@ func LoginHandler(userRepo repository.UserRepository) http.HandlerFunc {
 		}
 
 		//helper function for the parsing the uuid which is stored in string type in jwt
-		userID, err := uuid.Parse(user.ID)
+		userID, err := uuid.Parse(user.ID.String())
 		if err != nil {
 			http.Error(w, "Invalid user ID format", http.StatusInternalServerError)
 			return
 		}
 
 		//6.generate the token for that user
-		tokenString, err := utils.GenerateToken(userID, *user.Email)
+		tokenString, err := utils.GenerateToken(userID, user.Email)
 		if err != nil {
 			writeJSONError(w, "Invalid Token", http.StatusInternalServerError)
 		}
@@ -104,7 +105,7 @@ func LoginHandler(userRepo repository.UserRepository) http.HandlerFunc {
 
 		if isProduction {
 			// local dev, no HTTPS normally
-			sameSite = http.SameSiteNoneMode
+			sameSite = http.SameSiteLaxMode
 			secure = true
 		}
 		//7. Set and secure the token in the cookies

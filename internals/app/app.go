@@ -16,14 +16,18 @@ type App struct {
 	Hub *websockets.Hub
 
 	//Repositories for the app
-	UserRepo           repository.UserRepository
-	CrewRepo           repository.CrewRepository
-	MessageRepo        repository.MessageRepository
-	FriendRepo         repository.FriendRepository
-	ConvRepo           repository.Conversation
-	Config             *config.AppConfig
-	ChatHistoryService services.ChatHistroyService
+	UserRepo    repository.UserRepository
+	CrewRepo    repository.CrewRepository
+	MessageRepo repository.MessageRepository
+	FriendRepo  repository.FriendRepository
+	ConvRepo    repository.Conversation
+	Config      *config.AppConfig
+
+	// Services
+	CrewService        services.CrewService
+	FriendService      services.FriendService
 	MessageService     services.MessageService
+	ChatHistoryService services.ChatHistroyService
 }
 
 // Constructor for the app
@@ -48,5 +52,14 @@ func NewApp(
 			repository.NewMessageRepository(db),
 			repository.NewUserRepository(db),
 			repository.NewCrewRepository(db)),
+		FriendService: services.NewFriendService(
+			repository.NewUserRepository(db),
+			repository.NewFriendRepository(db),
+		),
+		CrewService: services.NewCrewService(
+			db,
+			repository.NewCrewRepository(db),
+			repository.NewUserRepository(db),
+		),
 	}
 }

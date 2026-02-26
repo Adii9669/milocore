@@ -29,28 +29,39 @@ func ConnectToDB() *gorm.DB {
 	log.Println("DATABASE Connection sucessful.")
 
 	//---Run AutoMigrate ---
-	runMig := false
-
-	if runMig {
-		if os.Getenv("APP_ENV") == "local" {
-			if err := DB.AutoMigrate(
-				&models.User{},
-				&models.Account{},
-				&models.Session{},
-				&models.Crew{},
-				&models.Message{},
-				&models.Friends{},
-			); err != nil {
-				log.Fatalf("Migration failed: %v", err)
-			}
-			log.Println("Database migration successful")
-		} else {
-			log.Println("-----Skiping the migration-------")
-		}
-
+	if len(os.Args) > 1 && os.Args[1] == "migrate" {
+		log.Println("Running migrations...")
+		DB.AutoMigrate(
+			&models.User{},
+			&models.Account{},
+			&models.Session{},
+			&models.Crew{},
+			&models.Message{},
+			&models.Friend{},
+			&models.CrewMember{},
+		)
+		return DB
 	}
+	// runMig := false
+
+	// if runMig {
+	// 	if os.Getenv("APP_ENV") == "local" {
+	// 		if err := DB.AutoMigrate(
+	// 			&models.User{},
+	// 			&models.Account{},
+	// 			&models.Session{},
+	// 			&models.Crew{},
+	// 			&models.Message{},
+	// 			&models.Friend{},
+	// 		); err != nil {
+	// 			log.Fatalf("Migration failed: %v", err)
+	// 		}
+	// 		log.Println("Database migration successful")
+	// 	} else {
+	// 		log.Println("-----Skiping the migration-------")
+	// 	}
+	//
+	// }
 
 	return DB
 }
-
-// FindUserByID retrieves a user from the database by their ID.

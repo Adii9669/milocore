@@ -91,8 +91,8 @@ func RegisterHandler(userRepo repository.UserRepository) http.HandlerFunc {
 		hashedPasswordStr := string(passwordHash)
 		//7.Create a struct for the new user what to store in the database
 		newUser := models.User{
-			Name:         &req.Username,
-			Email:        &req.Email,
+			Name:         req.Username,
+			Email:        req.Email,
 			PasswordHash: &hashedPasswordStr,
 			Verified:     false,
 			VerifyOTP:    &verificationOTP,
@@ -101,7 +101,7 @@ func RegisterHandler(userRepo repository.UserRepository) http.HandlerFunc {
 		//8.For the next step using the transcation if we fails nothing will be created.
 		err = db.DB.Transaction(func(tx *gorm.DB) error {
 			//send verification email to send the otp
-			otp, err := SendOTP(*newUser.Email)
+			otp, err := SendOTP(newUser.Email)
 			if err != nil {
 				return fmt.Errorf("failed to send verification email: %w", err)
 			}
@@ -127,7 +127,7 @@ func RegisterHandler(userRepo repository.UserRepository) http.HandlerFunc {
 		w.WriteHeader(http.StatusCreated)
 		utils.PrettyJSON(w, map[string]any{
 			"message": "Registration successful. Please check your email to verify your account.",
-			"email":   *newUser.Email,
+			"email":   newUser.Email,
 		})
 	}
 
