@@ -14,7 +14,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func (h *CrewHandler) UpdateRole(w http.ResponseWriter, r *http.Request) {
+func (h *CrewHandler) UpdateMember(w http.ResponseWriter, r *http.Request) {
 
 	defer r.Body.Close()
 	ctx := r.Context()

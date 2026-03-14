@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"os"
+	"strings"
 
 	//project api
 	"chat-server/internals/utils"
@@ -21,32 +23,56 @@ var userIDKey = contextKey{}
 func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-		//1.Extract token from the cookies
+		tokenString := ""
 		cookie, err := r.Cookie("token")
-		if err != nil {
-			http.Error(w, "Unauthorized ", http.StatusUnauthorized)
+		if err == nil {
+			tokenString = cookie.Value
+		} else {
+			authHeader := r.Header.Get("Authorization")
+			if strings.HasPrefix(authHeader, "Bearer ") {
+				tokenString = strings.TrimPrefix(authHeader, "Bearer ")
+			}
+		}
+
+		if tokenString == "" {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
 
-		//2.Validate the Token
-		tokenString := cookie.Value
 		claims, err := utils.ValidateToken(tokenString)
 		if err != nil {
-			http.Error(w, "Unauthorized ", http.StatusUnauthorized)
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
 
-		// Parse UUID (normalize identity)
 		userID, err := uuid.Parse(claims.UserID)
 		if err != nil {
-			http.Error(w, "Unauthorized ", http.StatusUnauthorized)
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
 
-		//3.Now the token is present the create the context with the claims
 		ctx := context.WithValue(r.Context(), userIDKey, userID)
 
-		//4.Pass the  modified request to the next handler.
+		refreshedToken, err := utils.GenerateToken(userID, claims.Username)
+		if err == nil {
+			isProduction := os.Getenv("APP_ENV") == "production"
+			sameSite := http.SameSiteLaxMode
+			secure := false
+			if isProduction {
+				secure = true
+				sameSite = http.SameSiteNoneMode
+			}
+			http.SetCookie(w, &http.Cookie{
+				Name:     "token",
+				Value:    refreshedToken,
+				Path:     "/",
+				MaxAge:   int(utils.TokenExpiryDuration.Seconds()),
+				HttpOnly: true,
+				Secure:   secure,
+				SameSite: sameSite,
+			})
+		}
+
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

@@ -24,7 +24,7 @@ func (h *CrewHandler) CreateCrew(w http.ResponseWriter, r *http.Request) {
 	//parsing the jwtclaims userid (stored in the stirng type) to uuid format
 	ownerID, err := middleware.GetUserIDFromContext(ctx)
 	if err != nil {
-		http.Error(w, "Invalid user ID in token", http.StatusUnauthorized)
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
