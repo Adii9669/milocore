@@ -16,6 +16,8 @@ type FriendRepository interface {
 	GetAcceptedByUser(ctx context.Context, userID uuid.UUID) ([]models.Friend, error)
 	Delete(ctx context.Context, low, high uuid.UUID) error
 	GetRelation(ctx context.Context, low, high uuid.UUID) (*models.Friend, error)
+	GetIncomingRequests(ctx context.Context, userID uuid.UUID) ([]models.Friend, error)
+	GetOutgoingRequests(ctx context.Context, userID uuid.UUID) ([]models.Friend, error)
 }
 
 type friendRepository struct {
@@ -97,4 +99,27 @@ func (r *friendRepository) GetRelation(
 	}
 
 	return &relation, nil
+}
+
+func (r *friendRepository) GetIncomingRequests(ctx context.Context, userID uuid.UUID) ([]models.Friend, error) {
+	var req []models.Friend
+
+	err := r.db.WithContext(ctx).
+		Where("status = ?", "pending").
+		Where("requested_by != ?", userID).
+		Where("user_low_id = ? OR user_high_id = ?", userID, userID).
+		Find(&req).Error
+
+	return req, err
+}
+func (r *friendRepository) GetOutgoingRequests(ctx context.Context, userID uuid.UUID) ([]models.Friend, error) {
+
+	var requests []models.Friend
+
+	err := r.db.WithContext(ctx).
+		Where("status = ?", "pending").
+		Where("requested_by = ?", userID).
+		Find(&requests).Error
+
+	return requests, err
 }

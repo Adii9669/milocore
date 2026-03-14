@@ -60,26 +60,47 @@ func SetUpRouter(app *app.App) http.Handler {
 	r.Route("/api", func(r chi.Router) {
 		r.Use(middleware.AuthMiddleware)
 
-		// Crew
-		r.Post("/crew/create", crewHandler.CreateCrew)
-		r.Get("/crews", crewHandler.Getcrew)
-		r.Delete("/crew/{crewID}", crewHandler.DeleteCrew)
-		r.Put("/crew/{crewID}", crewHandler.RenameCrew)
+		r.Route("/crews", func(r chi.Router) {
+			r.Post("/", crewHandler.CreateCrew)
+			r.Get("/", crewHandler.Getcrew)
+
+			r.Route("/{crewID}", func(r chi.Router) {
+				r.Delete("/", crewHandler.DeleteCrew)
+				r.Put("/", crewHandler.RenameCrew)
+
+				r.Route("/members", func(r chi.Router) {
+					r.Post("/", crewHandler.AddMember)
+					r.Get("/", crewHandler.GetMembers)
+
+					r.Route("/{userID}", func(r chi.Router) {
+						r.Put("/role", crewHandler.UpdateMember)
+						r.Delete("/", crewHandler.RemoveMember)
+					})
+
+				})
+			})
+		})
 
 		//member
-		r.Get("/{crewID}/members", crewHandler.GetMembers)
-		r.Post("/crew/{crewID}/member/{memberID}", crewHandler.AddMember)
-		r.Delete("/crew/{crewID}/member/{memberID}", crewHandler.RemoveMember)
-		r.Put("/crew/{crewID}/member/{memberID}/role", crewHandler.UpdateRole)
 
 		// User
 		r.Get("/me", authHandler.Me)
+		r.Get("/users", authHandler.GetUsers)
 
 		// Friend
-		r.Post("/friend/request", frndHandler.SendFrndRequest)
-		r.Post("/friend/accept", frndHandler.AcceptRequest)
 		r.Get("/friends", frndHandler.GetFriends)
-		r.Delete("/friend/remove/{friendID}", frndHandler.RemoveFriend)
+
+		r.Route("/friend-requests", func(r chi.Router) {
+			r.Post("/", frndHandler.SendFrndRequest)
+			r.Get("/", frndHandler.GetRequests)
+
+			r.Route("/{requestID}", func(r chi.Router) {
+				r.Put("/accept", frndHandler.AcceptRequest)
+				r.Delete("/", frndHandler.RejectRequest)
+			})
+		})
+
+		r.Delete("/friends/{friendID}", frndHandler.RemoveFriend)
 
 		// Chat
 		r.Get("/chats/crew/{crewId}", chathistoryHandler.GetCrewHistory)

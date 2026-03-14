@@ -16,8 +16,13 @@ type JWTClaims struct {
 	UserID   string `json:"userId"`
 }
 
+const TokenExpiryDuration = 24 * time.Hour
+
 func GenerateToken(userId uuid.UUID, name string) (string, error) {
-	//take the token key
+	return GenerateTokenWithExpiry(userId, name, TokenExpiryDuration)
+}
+
+func GenerateTokenWithExpiry(userId uuid.UUID, name string, expiry time.Duration) (string, error) {
 	jwtkey := []byte(os.Getenv("TOKEN_KEY"))
 
 	// log.Println("GENERATING TOKEN WITH KEY:", string(jwtkey)) // Add this line
@@ -25,10 +30,10 @@ func GenerateToken(userId uuid.UUID, name string) (string, error) {
 		return "", fmt.Errorf("JWT_SECRET_KEY environment variable not set")
 	}
 	// Create the claims for the token.
+	expiresAt := time.Now().Add(expiry)
 	claims := JWTClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
-			// Subject:   userId.String(),
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
+			ExpiresAt: jwt.NewNumericDate(expiresAt),
 		},
 		UserID:   userId.String(),
 		Username: name,

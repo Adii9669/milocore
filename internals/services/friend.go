@@ -52,6 +52,18 @@ type FriendService interface {
 		userID uuid.UUID,
 		friendID uuid.UUID,
 	) error
+
+	GetRequests(
+		ctx context.Context,
+		userID uuid.UUID,
+		reqType string,
+	) ([]dto.FriendResponse, error)
+
+	RejectRequest(
+		ctx context.Context,
+		requesterID uuid.UUID,
+		userID uuid.UUID,
+	) error
 }
 
 type friendService struct {
@@ -184,4 +196,83 @@ func (s *friendService) RemoveFriend(
 	}
 
 	return s.frndRepo.Delete(ctx, low, high)
+}
+
+func (s *friendService) GetRequests(
+	ctx context.Context,
+	userID uuid.UUID,
+	reqType string,
+) ([]dto.FriendResponse, error) {
+	switch reqType {
+
+	case "outgoing":
+		requests, err := s.frndRepo.GetOutgoingRequests(ctx, userID)
+		if err != nil {
+			return nil, err
+		}
+		result := make([]dto.FriendResponse, 0)
+		for _, relation := range requests {
+			otherID := relation.UserLowID
+			if otherID == userID {
+				otherID = relation.UserHighID
+			}
+			otherUser, err := s.userRepo.FindByID(ctx, otherID)
+			if err != nil {
+				return nil, err
+			}
+			result = append(result, dto.FriendResponse{
+				ID:        otherUser.ID.String(),
+				Name:      otherUser.Name,
+				Status:    relation.Status,
+				CreatedAt: relation.CreatedAt,
+			})
+		}
+		return result, nil
+
+	default:
+		requests, err := s.frndRepo.GetIncomingRequests(ctx, userID)
+		if err != nil {
+			return nil, err
+		}
+		result := make([]dto.FriendResponse, 0)
+		for _, relation := range requests {
+			otherID := relation.UserLowID
+			if otherID == userID {
+				otherID = relation.UserHighID
+			}
+			otherUser, err := s.userRepo.FindByID(ctx, otherID)
+			if err != nil {
+				return nil, err
+			}
+			result = append(result, dto.FriendResponse{
+				ID:        otherUser.ID.String(),
+				Name:      otherUser.Name,
+				Status:    relation.Status,
+				CreatedAt: relation.CreatedAt,
+			})
+		}
+		return result, nil
+	}
+}
+
+func (s *friendService) RejectRequest(
+	ctx context.Context,
+	requesterID uuid.UUID,
+	userID uuid.UUID,
+) error {
+
+	req, err := s.frndRepo.GetRelation(ctx, userID, requesterID)
+	if err != nil {
+		return err
+	}
+
+	if req.Status != "pending" {
+		return errors.New("request not pending")
+	}
+
+	if req.RequestedBy == userID {
+		return errors.New("sender cannot reject")
+	}
+
+	return s.frndRepo.Delete(ctx, userID, requesterID)
 }

@@ -15,6 +15,7 @@ type UserRepository interface {
 	FindBYName(ctx context.Context, name string) (*models.User, error)
 	Create(ctx context.Context, user *models.User) error
 	ExistByID(ctx context.Context, userID uuid.UUID) (bool, error)
+	FindAll(ctx context.Context) ([]models.User, error)
 
 	FindByIDs(ctx context.Context, ids []uuid.UUID) ([]models.User, error)
 }
@@ -86,5 +87,11 @@ func (r *userRepository) FindByIDs(
 		Where("id IN ?", ids).
 		Find(&users).Error
 
+	return users, err
+}
+
+func (r *userRepository) FindAll(ctx context.Context) ([]models.User, error) {
+	var users []models.User
+	err := r.db.WithContext(ctx).Find(&users).Error
 	return users, err
 }
