@@ -3,6 +3,7 @@ package websockets
 import (
 	"chat-server/internals/services"
 	"encoding/json"
+	"fmt"
 	"log"
 )
 
@@ -54,6 +55,9 @@ func (h *Hub) handleUnregister(client *Client) {
 
 // -----------------------------------------------------------build message evenet
 func buildMessageEvent(msg *services.MessageResult) ([]byte, error) {
+	if msg == nil || msg.Response == nil {
+		return nil, fmt.Errorf("invalid message result")
+	}
 	event := WSEvent{
 		Event: EventMessage,
 		Data: WSMessagePayload{
