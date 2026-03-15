@@ -6,6 +6,7 @@ import (
 	"chat-server/internals/transport/mapper"
 	"context"
 	"errors"
+	"log"
 
 	"github.com/google/uuid"
 )
@@ -51,6 +52,7 @@ func (s *messageService) HandleIncomingMessage(
 	if payload.Type != "dm" && payload.Type != "crew" {
 		return nil, errors.New("invalid message type")
 	}
+
 	if payload.Type == "dm" {
 		if payload.ReceiverID == nil || payload.CrewID != nil {
 			return nil, errors.New("invalid message type")
@@ -98,7 +100,6 @@ func (s *messageService) HandleIncomingMessage(
 		}
 
 		//if exist (check if exist or not )
-
 		exists, err := s.userRepo.ExistByID(ctx, receiver)
 		if err != nil {
 			return nil, err
@@ -108,6 +109,7 @@ func (s *messageService) HandleIncomingMessage(
 		}
 
 		//msg store the raw db models  for the message
+		log.Printf("Testesing receiver %v", *payload.ReceiverID)
 		msg := &models.Message{
 			ID:         uuid.New(),
 			SenderID:   senderID,
@@ -122,7 +124,10 @@ func (s *messageService) HandleIncomingMessage(
 		//this is the mapper converting the database models into the dto for sending back the response
 		resp := mapper.ToDMMessageResponse(msg, senderID)
 		return &MessageResult{
-			Response: &resp,
+			Response:   &resp,
+			SenderID:   senderID,
+			ReceiverID: payload.ReceiverID,
+			CrewID:     nil,
 		}, nil
 	}
 

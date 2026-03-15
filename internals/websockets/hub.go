@@ -43,11 +43,13 @@ func (h *Hub) Run() {
 
 			// DEBUG
 			log.Printf(
-				"[WS] client registered | total connections=%d | users=%d | userID=%s",
+				"[WS] client registered | total connections=%d | users=%d  ",
 				len(h.clients),
 				len(h.users),
-				client.userID,
 			)
+			// for c := range h.clients {
+			// 	log.Printf("   client connection → userID=%s", c.userID)
+			// }
 
 		case client := <-h.unregister:
 			h.handleUnregister(client)
@@ -60,7 +62,7 @@ func (h *Hub) Run() {
 			)
 
 		case msg := <-h.route:
-			h.routeMessage(msg)
+			h.handleRouteMessage(msg)
 		case data := <-h.broadcast:
 			h.handleBroadcast(data)
 			log.Printf("incoming WS payload: %s", string(data))

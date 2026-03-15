@@ -21,7 +21,6 @@ func ServeWS(
 	messageservice services.MessageService,
 	w http.ResponseWriter,
 	r *http.Request,
-
 ) {
 
 	//get user Id
