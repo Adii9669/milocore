@@ -1,20 +1,21 @@
 package websockets
 
-import "time"
+type MessageType string
 
-type IncomingMessage struct {
-	Type       string `json:"type"`        // "dm" | "crew"
-	ReceiverID string `json:"receiver_id"` // userID or crewID
-	Content    string `json:"content"`
-}
+const (
+	TextMessage MessageType = "text_message"
+	FileMessage MessageType = "file_message"
+	TypingEvent MessageType = "typing"
+)
 
-type OutgoingMessage struct {
-	ID         string    `json:"id"`
-	Type       string    `json:"type"`
-	SenderID   string    `json:"sender_id"`
-	ReceiverID string    `json:"receiver_id"`
-	Content    string    `json:"content"`
-	CreatedAt  time.Time `json:"created_at"`
+// Creating the protocol for sending the message through the websockets
+type WSMessage struct {
+	Type MessageType `json:"type"`
+
+	CrewID     string `json:"crewId,omitempty"`
+	ReceiverID string `json:"receiverId,omitempty"`
+
+	Content string `json:"content,omitempty"`
 }
 
 type AckMessage struct {

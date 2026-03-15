@@ -43,8 +43,10 @@ func (h *Handler) GetDmHistory(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	log.Printf("userA %s", otherUserID)
-	log.Printf("userB %s", authUserID)
+	// log.Printf("otheruser count %d", len(otherUserID))
+	// log.Printf("auth count %d", len(authUserID))
+	// log.Printf("userA %s", otherUserID)
+	// log.Printf("userB %s", authUserID)
 
 	messages, err := h.service.DmHistory(
 		ctx,
