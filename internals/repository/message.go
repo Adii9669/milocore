@@ -26,6 +26,8 @@ type MessageRepository interface {
 		limit int,
 		cursor *time.Time,
 	) ([]models.Message, error)
+	MarkDelivered(ctx context.Context, messageID uuid.UUID) error
+	MarkRead(ctx context.Context, userID, otherUserID uuid.UUID) error
 }
 
 type messageRepository struct {
@@ -122,4 +124,19 @@ func (r *messageRepository) GetDmMessageHistory(
 	slices.Reverse(messages)
 
 	return messages, nil
+}
+
+func (r *messageRepository) MarkDelivered(ctx context.Context, messageID uuid.UUID) error {
+	return r.db.WithContext(ctx).
+		Model(&models.Message{}).
+		Where("id = ?", messageID).
+		Update("delivered", true).Error
+}
+
+func (r *messageRepository) MarkRead(ctx context.Context, userID, otherUserID uuid.UUID) error {
+	return r.db.WithContext(ctx).
+		Model(&models.Message{}).
+		Where("sender_id = ? AND receiver_id = ?", otherUserID, userID).
+		Where("read = ?", false).
+		Update("read", true).Error
 }

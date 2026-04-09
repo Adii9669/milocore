@@ -3,7 +3,6 @@ package chathistory
 import (
 	"chat-server/internals/middleware"
 	"chat-server/internals/utils"
-	"log"
 	"net/http"
 	"strconv"
 	"time"

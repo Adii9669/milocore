@@ -11,14 +11,23 @@ type WSEvent struct {
 	Data  any    `json:"data"`
 }
 
+type EventType string
+
+const (
+	MessageSend      EventType = "message.send"
+	MessageDelivered EventType = "message.delivered"
+	MessageRead      EventType = "message.read"
+)
+
 type WSMessagePayload struct {
-	ID         string    `json:"id"`
-	Type       string    `json:"type"`
-	Content    string    `json:"content"`
-	CreatedAt  time.Time `json:"createdAt"`
-	Sender     SenderDTO `json:"sender"`
-	ReceiverID *string   `json:"receiverId,omitempty"`
-	CrewID     *string   `json:"crewId,omitempty"`
+	ID         string     `json:"id"`
+	Type       string     `json:"type"`
+	EventType  EventType  `json:"event"`
+	Content    string     `json:"content"`
+	CreatedAt  time.Time  `json:"createdAt"`
+	Sender     SenderDTO  `json:"sender"`
+	ReceiverID *uuid.UUID `json:"receiverId,omitempty"`
+	CrewID     *uuid.UUID `json:"crewId,omitempty"`
 }
 
 type SenderDTO struct {

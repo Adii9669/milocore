@@ -15,7 +15,7 @@ type ChatHistroyService interface {
 	CrewHistory(
 		ctx context.Context,
 		crewID uuid.UUID,
-		currentUser string,
+		currentUser uuid.UUID,
 		limit int,
 		cursor *time.Time,
 	) ([]dto.MessageResponse, error)
@@ -42,7 +42,7 @@ func NewChatHistoryService(repo repository.MessageRepository) ChatHistroyService
 func (s *chathistroyservice) CrewHistory(
 	ctx context.Context,
 	crewID uuid.UUID,
-	currentUser string,
+	currentUser uuid.UUID,
 	limit int,
 	cursor *time.Time,
 ) ([]dto.MessageResponse, error) {
@@ -95,7 +95,7 @@ func (s *chathistroyservice) DmHistory(
 	var responses []dto.MessageResponse
 
 	for _, msg := range messages {
-		resp := mapper.ToDMMessageResponse(&msg, userA.String())
+		resp := mapper.ToDMMessageResponse(&msg, userA)
 		responses = append(responses, resp)
 	}
 

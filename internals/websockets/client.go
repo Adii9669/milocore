@@ -7,6 +7,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"golang.org/x/time/rate"
 )
@@ -22,8 +23,8 @@ type Client struct {
 	conn *websocket.Conn
 	send chan []byte
 
-	userID string
-	crews  map[string]bool
+	userID uuid.UUID
+	crews  map[uuid.UUID]bool
 
 	hub *Hub
 
@@ -36,7 +37,7 @@ type Client struct {
 
 func NewClient(
 	conn *websocket.Conn,
-	userID string,
+	userID uuid.UUID,
 	hub *Hub,
 	ctx context.Context,
 	cancel context.CancelFunc,
@@ -46,7 +47,7 @@ func NewClient(
 		conn:           conn,
 		send:           make(chan []byte, 256),
 		userID:         userID,
-		crews:          make(map[string]bool),
+		crews:          make(map[uuid.UUID]bool),
 		hub:            hub,
 		ctx:            ctx,
 		cancel:         cancel,
@@ -101,9 +102,14 @@ func (c *Client) readPump() {
 			c.handleDmMessage(wsMsg)
 		case "crew_message":
 			c.handleCrewMessage(wsMsg)
-
 		case "typing":
 			c.hub.broadcastTyping(c, wsMsg)
+		case "delivered":
+			c.handleDelivered(wsMsg)
+		case "read":
+			c.handleRead(wsMsg)
+		default:
+			log.Printf("unknow ws message type=%s from the user=%s", wsMsg.Type, c.userID)
 		}
 
 	}
