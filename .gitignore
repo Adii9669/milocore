@@ -2,7 +2,13 @@
 
 #custom
 tmp/
+<<<<<<< HEAD
 server
+=======
+# Go binaries
+server
+server.exe
+>>>>>>> dev
 
 # dependencies
 /node_modules

@@ -131,6 +131,7 @@ func SetUpRouter(app *app.App) http.Handler {
 	return handlers.CORS(
 		handlers.AllowedOrigins([]string{
 			"http://localhost:3000",
+			"https://yourapp.vercel.app",
 			"https://milonext.onrender.com",
 		}),
 		handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}),
