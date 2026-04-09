@@ -49,7 +49,7 @@ func (h *Handler) GetCrewHistory(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	messages, err := h.service.CrewHistory(ctx, crewID, userID.String(), limit, cursor)
+	messages, err := h.service.CrewHistory(ctx, crewID, userID, limit, cursor)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return

@@ -2,8 +2,8 @@ package services
 
 import (
 	"chat-server/internals/db/models"
+	"chat-server/internals/events"
 	"chat-server/internals/repository"
-	"chat-server/internals/transport/mapper"
 	"context"
 	"errors"
 	"log"
@@ -12,17 +12,25 @@ import (
 )
 
 type IncomingMessage struct {
-	Type       string  `json:"type"` // "message"
-	Content    string  `json:"content"`
-	CrewID     *string `json:"crewId"`
-	ReceiverID *string `json:"receiverId"`
+	Type       string     `json:"type"` // "message"
+	Content    string     `json:"content"`
+	CrewID     *uuid.UUID `json:"crewId"`
+	ReceiverID *uuid.UUID `json:"receiverId"`
 }
 
 type MessageService interface {
 	HandleIncomingMessage(
 		ctx context.Context,
-		senderID string,
-		payload IncomingMessage) (*MessageResult, error)
+		senderID uuid.UUID,
+		payload IncomingMessage) (events.MessageEvent, error)
+	MarkDelivered(
+		ctx context.Context,
+		msgID uuid.UUID,
+	) error
+	MarkRead(
+		ctx context.Context,
+		userID, OtherUserID uuid.UUID,
+	) error
 }
 
 type messageService struct {
@@ -35,6 +43,7 @@ func NewMessageService(
 	messageRepo repository.MessageRepository,
 	userRepo repository.UserRepository,
 	crewRepo repository.CrewRepository,
+
 ) MessageService {
 	return &messageService{
 		messageRepo: messageRepo,
@@ -45,48 +54,44 @@ func NewMessageService(
 
 func (s *messageService) HandleIncomingMessage(
 	ctx context.Context,
-	senderID string,
-	payload IncomingMessage) (*MessageResult, error) {
+	senderID uuid.UUID,
+	payload IncomingMessage) (events.MessageEvent, error) {
 
 	//check the payload first
 	if payload.Type != "dm" && payload.Type != "crew" {
-		return nil, errors.New("invalid message type")
+		return events.MessageEvent{}, errors.New("invalid message type")
 	}
 
 	if payload.Type == "dm" {
 		if payload.ReceiverID == nil || payload.CrewID != nil {
-			return nil, errors.New("invalid message type")
+			return events.MessageEvent{}, errors.New("invalid message type")
 		}
 	}
 
 	if payload.Type == "crew" {
 		if payload.ReceiverID != nil || payload.CrewID == nil {
-			return nil, errors.New("invalid message type")
+			return events.MessageEvent{}, errors.New("invalid message type")
 		}
 	}
 
 	if payload.Content == "" {
-		return nil, errors.New("empty message")
+		return events.MessageEvent{}, errors.New("empty message")
 	}
 
 	if payload.CrewID == nil && payload.ReceiverID == nil {
-		return nil, errors.New("no target specified")
+		return events.MessageEvent{}, errors.New("no target specified")
 	}
 
 	if payload.CrewID != nil && payload.ReceiverID != nil {
-		return nil, errors.New("ambiguous target")
+		return events.MessageEvent{}, errors.New("ambiguous target")
 	}
 
 	//check the userID exist or not ?
-	senderUUID, err := uuid.Parse(senderID)
-	if err != nil {
-		return nil, errors.New("invalid sender Id")
-	}
 
 	//checking the senderID
-	sender, err := s.userRepo.FindByID(ctx, senderUUID)
+	sender, err := s.userRepo.FindByID(ctx, senderID)
 	if err != nil {
-		return nil, err
+		return events.MessageEvent{}, err
 	}
 
 	// =========================
@@ -94,18 +99,15 @@ func (s *messageService) HandleIncomingMessage(
 	// =========================
 	if payload.ReceiverID != nil {
 		//reciverID check (validate)
-		receiver, err := uuid.Parse(*payload.ReceiverID)
-		if err != nil {
-			return nil, errors.New("invalid receiver ID")
-		}
+		receiver := *payload.ReceiverID
 
 		//if exist (check if exist or not )
 		exists, err := s.userRepo.ExistByID(ctx, receiver)
 		if err != nil {
-			return nil, err
+			return events.MessageEvent{}, err
 		}
 		if !exists {
-			return nil, errors.New("receiver does not exist")
+			return events.MessageEvent{}, errors.New("receiver does not exist")
 		}
 
 		//msg store the raw db models  for the message
@@ -117,44 +119,55 @@ func (s *messageService) HandleIncomingMessage(
 			Content:    &payload.Content,
 		}
 
-		if err := s.messageRepo.SaveMessage(ctx, msg); err != nil {
-			return nil, err
-		}
-
 		//this is the mapper converting the database models into the dto for sending back the response
-		resp := mapper.ToDMMessageResponse(msg, senderID)
-		return &MessageResult{
-			Response:   &resp,
-			SenderID:   senderID,
+
+		msg.Sender = *sender
+
+		if err := s.messageRepo.SaveMessage(ctx, msg); err != nil {
+			return events.MessageEvent{}, err
+		}
+		// resp := mapper.ToDMMessageResponse(msg, senderID)
+		events := events.MessageEvent{
+			ID:         msg.ID,
+			Type:       "dm",
+			Content:    *msg.Content,
+			CreatedAt:  msg.CreatedAt,
+			SenderID:   sender.ID,
+			SenderName: sender.Name,
 			ReceiverID: payload.ReceiverID,
 			CrewID:     nil,
-		}, nil
+		}
+
+		// return &MessageResult{
+		// 	Response:   &resp,
+		// 	SenderID:   senderID,
+		// 	ReceiverID: payload.ReceiverID,
+		// 	CrewID:     nil,
+		// }, nil
+		return events, nil
 	}
 
 	// =========================
 	//  CREW MESSAGE
 	// =========================
-	crewUUID, err := uuid.Parse(*payload.CrewID)
-	if err != nil {
-		return nil, errors.New("invalid crew ID")
-	}
+	crewUUID := *payload.CrewID
 
 	//if exist (check if exist or not )
 	exists, err := s.crewRepo.ExistByID(ctx, crewUUID)
 	if err != nil {
-		return nil, err
+		return events.MessageEvent{}, err
 	}
 	if !exists {
-		return nil, errors.New("receiver does not exist")
+		return events.MessageEvent{}, errors.New("receiver does not exist")
 	}
 
 	// check if a member of the crew or not ?
-	isMember, err := s.crewRepo.IsMember(ctx, crewUUID, senderUUID)
+	isMember, err := s.crewRepo.IsMember(ctx, crewUUID, senderID)
 	if err != nil {
-		return nil, err
+		return events.MessageEvent{}, err
 	}
 	if !isMember {
-		return nil, errors.New("not a member of this crew")
+		return events.MessageEvent{}, errors.New("not a member of this crew")
 	}
 
 	msg := &models.Message{
@@ -165,14 +178,34 @@ func (s *messageService) HandleIncomingMessage(
 	}
 
 	if err := s.messageRepo.SaveMessage(ctx, msg); err != nil {
-		return nil, err
+		return events.MessageEvent{}, err
 	}
 	msg.Sender = *sender
-	resp := mapper.ToCrewMessageResponse(msg, senderID)
-	return &MessageResult{
-		Response:   &resp,
-		SenderID:   senderID,
+	events := events.MessageEvent{
+		ID:         msg.ID,
+		Type:       "dm",
+		Content:    *msg.Content,
+		CreatedAt:  msg.CreatedAt,
+		SenderID:   sender.ID,
+		SenderName: sender.Name,
 		ReceiverID: nil,
 		CrewID:     payload.CrewID,
-	}, nil
+	}
+
+	return events, nil
+	// resp := mapper.ToCrewMessageResponse(msg, senderID)
+	// return &MessageResult{
+	// 	Response:   &resp,
+	// 	SenderID:   senderID,
+	// 	ReceiverID: nil,
+	// 	CrewID:     payload.CrewID,
+	// }, nil
+}
+
+func (s *messageService) MarkDelivered(ctx context.Context, messageID uuid.UUID) error {
+	return s.messageRepo.MarkDelivered(ctx, messageID)
+}
+
+func (s *messageService) MarkRead(ctx context.Context, userID, OtherUserID uuid.UUID) error {
+	return s.messageRepo.MarkRead(ctx, userID, OtherUserID)
 }

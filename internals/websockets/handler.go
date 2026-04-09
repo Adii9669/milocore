@@ -3,10 +3,12 @@ package websockets
 import (
 	"chat-server/internals/services"
 	"chat-server/internals/utils"
+	"chat-server/internals/workers"
 	"context"
 	"log"
 	"net/http"
 
+	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 )
 
@@ -33,9 +35,14 @@ func ServeWS(
 	claims, err := utils.ValidateToken(cookie.Value)
 	if err != nil {
 		http.Error(w, "userId is required", http.StatusBadRequest)
+		return
 	}
 
-	userID := claims.UserID
+	userID, err := uuid.Parse(claims.UserID)
+	if err != nil {
+		http.Error(w, "invalid userID", http.StatusBadRequest)
+		return
+	}
 
 	//upgrade the connections
 	conn, err := upgrader.Upgrade(w, r, nil)
@@ -45,12 +52,19 @@ func ServeWS(
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
+
 	//create the client
 	client := NewClient(conn, userID, hub, ctx, cancel, messageservice)
 
 	//register the client in the hub
 	hub.register <- client
 
+	deliveryWorker := &workers.DeliveryWorker{
+		MessageService: messageservice,
+		DeliveredChan:  hub.delivered,
+	}
+
+	deliveryWorker.Start(ctx)
 	//run the pumps
 	go client.writePump()
 	go client.readPump()

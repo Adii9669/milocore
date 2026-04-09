@@ -5,6 +5,8 @@ import (
 	"context"
 	"log"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 // ------------------------------------------------------------------handle Crew Message
@@ -19,16 +21,25 @@ func (c *Client) handleCrewMessage(msg WSMessage) {
 	ctx, cancel := context.WithTimeout(c.ctx, 5*time.Second)
 	defer cancel()
 
+	//saving the mssage Service is called here
 	savedMessage, err := c.messageService.HandleIncomingMessage(
 		ctx,
 		c.userID,
 		incoming,
 	)
+	//Check is no error is returned from service
 	if err != nil {
+		log.Printf("DEBUG DM result: %+v\n", savedMessage)
 		log.Println("failed to save message:", err)
 		return
 	}
-	c.hub.sendAck(c.userID, savedMessage.Response.ID, "sent")
+
+	//CHeck is Message is Empty or not
+	if savedMessage.ID == uuid.Nil {
+		log.Println("❌ savedMessage is nil before routing")
+		return
+	}
+	c.hub.sendMessageStatus(c.userID, savedMessage.ID, "sent")
 	c.hub.route <- savedMessage
 }
 
@@ -53,6 +64,13 @@ func (c *Client) handleDmMessage(msg WSMessage) {
 		log.Println("failed to save message:", err)
 		return
 	}
-	c.hub.sendAck(c.userID, savedMessage.Response.ID, "sent")
+
+	//CHeck is Message is Empty or not
+	if savedMessage.ID == uuid.Nil {
+		log.Printf("DEBUG DM result: %+v\n", savedMessage)
+		log.Println("❌ savedMessage is nil before routing")
+		return
+	}
+	c.hub.sendMessageStatus(c.userID, savedMessage.ID, "sent")
 	c.hub.route <- savedMessage
 }
