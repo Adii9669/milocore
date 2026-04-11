@@ -2,100 +2,77 @@ package auth
 
 import (
 	"chat-server/internals/config"
-	"chat-server/internals/db"
-	"chat-server/internals/repository"
 	"chat-server/internals/requests"
+	"chat-server/internals/services"
 	"chat-server/internals/utils"
 	"encoding/json"
-	"log"
 	"net/http"
 
 	"github.com/google/uuid"
-
-	"gorm.io/gorm"
 )
 
-func VerifyOtpHandler(userRepo repository.UserRepository) http.HandlerFunc {
+func VerifyOtpHandler(authService *services.AuthService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-
 		ctx := r.Context()
-		//take the request and check it
+
+		// 1. Decode request
 		var req requests.VerifyOtpRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			http.Error(w, "Invalid request body", http.StatusBadRequest)
 			return
 		}
 
-		//request verified now check the details in it
-		user, err := userRepo.FindByEmail(ctx, req.Email)
-		log.Printf("Finding the user %v", user)
+		// 2. Delegate all logic to the service
+		user, err := authService.VerifyOTP(ctx, req.Email, req.OTP)
 		if err != nil {
-			if err == gorm.ErrRecordNotFound {
-				http.Error(w, "User not found", http.StatusNotFound)
-				return
+			status := http.StatusInternalServerError
+			msg := err.Error()
+			switch msg {
+			case "user not found":
+				status = http.StatusNotFound
+			case "account is already verified",
+				"invalid verification code",
+				"no verification code found":
+				status = http.StatusBadRequest
+			case "verification code has expired":
+				status = http.StatusUnprocessableEntity
 			}
-			http.Error(w, "Database error", http.StatusInternalServerError)
-			return
-		}
-
-		//now next check if he is already verified
-		if user.Verified {
-			http.Error(w, "Account is already verified", http.StatusBadRequest)
-			return
-		}
-
-		// 3. Check if the submitted OTP matches the one in the database.
-		if user.VerifyOTP == nil || *user.VerifyOTP != req.OTP {
 			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(map[string]string{
-				"message": "Invalid verification code",
-			})
+			w.WriteHeader(status)
+			json.NewEncoder(w).Encode(map[string]string{"message": msg})
 			return
 		}
 
-		// 4. Update the user: mark as verified and clear the token.
-		user.Verified = true
-		user.VerifyOTP = nil // Clear the token so it can't be used again
-
-		if err := db.DB.Save(&user).Error; err != nil {
-			http.Error(w, "Failed to update user status", http.StatusInternalServerError)
-			return
-		}
-
-		//parsing the uuid which is stored in string type in jwt
+		// 3. Generate JWT
 		userID, err := uuid.Parse(user.ID.String())
 		if err != nil {
 			http.Error(w, "Invalid user ID format", http.StatusInternalServerError)
 			return
 		}
-
-		// 5. Generate a JWT using your utility function.
-		tokenString, err := utils.GenerateToken(userID, user.Name) // Use your function
+		tokenString, err := utils.GenerateToken(userID, user.Name)
 		if err != nil {
 			http.Error(w, "Failed to create token", http.StatusInternalServerError)
 			return
 		}
 
-		// 6. Set the secure HttpOnly cookie for the browser.
+		// 4. Set HttpOnly cookie
 		isProduction := config.Cfg.CHECK_ENV.ENV == "production"
 		http.SetCookie(w, &http.Cookie{
 			Name:     "token",
 			Value:    tokenString,
 			Path:     "/",
-			MaxAge:   3600 * 24, // 24 hours
+			MaxAge:   3600 * 24,
 			HttpOnly: true,
 			Secure:   isProduction,
 			SameSite: http.SameSiteLaxMode,
 		})
 
-		// 7. Send a success response with the new token.
+		// 5. Respond
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		utils.PrettyJSON(w, map[string]any{
 			"message":  "Account verified successfully.",
-			"Verified": user.Verified,
+			"verified": true,
 		})
-
 	}
 }

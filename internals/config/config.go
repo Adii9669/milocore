@@ -24,6 +24,7 @@ type AppConfig struct {
 		SMTPUser  string `env:"SMTP_USER,required"`
 		SMTPPass  string `env:"SMTP_PASS,required"`
 		EmailFrom string `env:"EMAIL_FROM,required"`
+		ResendApi string `env:"RESEND_API,required"`
 	}
 
 	// DatabaseConfig holds the database connection string.

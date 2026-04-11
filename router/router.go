@@ -38,9 +38,10 @@ func SetUpRouter(app *app.App) http.Handler {
 	--------------------------------------------------------- */
 
 	r.Route("/auth", func(r chi.Router) {
-		r.Post("/register", auth.RegisterHandler(app.UserRepo))
+		r.Post("/register", auth.RegisterHandler(app.AuthService))
 		r.Post("/login", auth.LoginHandler(app.UserRepo))
-		r.Post("/verify-otp", auth.VerifyOtpHandler(app.UserRepo))
+		r.Post("/verify-otp", auth.VerifyOtpHandler(app.AuthService))
+		r.Post("/resend-otp", auth.ResendOTPHandler(app.AuthService))
 		r.Post("/check-availability", auth.CheckAvailablityHandler)
 
 	})

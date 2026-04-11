@@ -13,11 +13,14 @@ type User struct {
 	Email        string `gorm:"uniqueIndex;not null"`
 	Image        *string
 
-	Verified  bool    `gorm:"default:false"`
-	VerifyOTP *string `gorm:"column:verify_otp"`
+	Verified bool `gorm:"default:false"`
 
-	UpdatedAt time.Time
-	CreatedAt time.Time
+	VerifyOTPHash string `gorm:"column:verify_otp"`
+	VerifySalt    string `gorm:"column:verify_salt"`
+
+	OTPExpiresAt *time.Time `gorm:"index"`
+	UpdatedAt    time.Time
+	CreatedAt    time.Time
 
 	//relation
 	Accounts   []Account `gorm:"foreignKey:UserID"`
