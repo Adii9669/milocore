@@ -43,10 +43,11 @@ func NewApp(
 	messageRepo := repository.NewMessageRepository(db)
 	friendRepo := repository.NewFriendRepository(db)
 	convRepo := repository.NewConversation(db)
+	sessionRepo := repository.NewSessionRepository(db)
 
 	// services
 	emailService := services.NewEmailService()
-	authService := services.NewAuthService(userRepo, emailService)
+	authService := services.NewAuthService(userRepo, sessionRepo, emailService)
 
 	return &App{
 		DB:     db,

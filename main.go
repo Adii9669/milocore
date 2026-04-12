@@ -30,8 +30,8 @@ func main() {
 		log.Printf("Error loading Config file %v", err)
 	}
 
-	log.Println("API", config.Cfg.Email.ResendApi)
-	log.Println("EMAIL_FROM:", config.Cfg.Email.EmailFrom)
+	// log.Println("API", config.Cfg.Email.ResendApi)
+	// log.Println("EMAIL_FROM:", config.Cfg.Email.EmailFrom)
 	//connecting to the database
 	database := db.ConnectToDB()
 

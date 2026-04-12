@@ -33,8 +33,8 @@ type AppConfig struct {
 	}
 
 	// TokenConfig holds the secret for JWT/JWE tokens.
-	Token struct {
-		Secret string `env:"TOKEN_KEY,required"`
+	Secret struct {
+		TOKEN string `env:"TOKEN_KEY,required"`
 	}
 
 	CHECK_ENV struct {

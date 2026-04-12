@@ -22,7 +22,10 @@ func ConnectToDB() *gorm.DB {
 
 	// -- ConnectToDB Database ------
 	var err error
-	DB, err = gorm.Open(postgres.Open(dbe), &gorm.Config{})
+	DB, err = gorm.Open(postgres.New(postgres.Config{
+		DSN: dbe,
+		// PreferSimpleProtocol: true,
+	}), &gorm.Config{})
 	if err != nil {
 		log.Fatal("Failed to Connect to the DATABASE")
 	}

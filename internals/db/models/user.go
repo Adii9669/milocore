@@ -49,12 +49,12 @@ type Account struct {
 }
 
 type Session struct {
-	ID           uint   `gorm:"primaryKey"`
-	SessionToken string `gorm:"unique"`
-	UserID       string `gorm:"type:uuid"`
-	Expires      time.Time
-
-	//relation
+	ID               uuid.UUID `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()"`
+	UserID           uuid.UUID `gorm:"type:uuid;not null;index"`
+	RefreshTokenHash string    `gorm:"not null"`
+	ExpiresAt        time.Time `gorm:"not null"`
+	CreatedAt        time.Time
+	// relation
 	User User `gorm:"foreignKey:UserID"`
 }
 

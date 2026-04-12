@@ -26,7 +26,7 @@ func ServeWS(
 ) {
 
 	//get user Id
-	cookie, err := r.Cookie("token")
+	cookie, err := r.Cookie("access_token")
 	if err != nil {
 		http.Error(w, "Invalid Token", http.StatusBadRequest)
 		return
