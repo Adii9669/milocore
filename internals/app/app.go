@@ -28,6 +28,8 @@ type App struct {
 	FriendService      services.FriendService
 	MessageService     services.MessageService
 	ChatHistoryService services.ChatHistroyService
+	EmailService       *services.EmailService
+	AuthService        *services.AuthService
 }
 
 // Constructor for the app
@@ -36,30 +38,35 @@ func NewApp(
 	hub *websockets.Hub,
 	cfg *config.AppConfig,
 ) *App {
+	userRepo := repository.NewUserRepository(db)
+	crewRepo := repository.NewCrewRepository(db)
+	messageRepo := repository.NewMessageRepository(db)
+	friendRepo := repository.NewFriendRepository(db)
+	convRepo := repository.NewConversation(db)
+	sessionRepo := repository.NewSessionRepository(db)
+
+	// services
+	emailService := services.NewEmailService()
+	authService := services.NewAuthService(userRepo, sessionRepo, emailService)
 
 	return &App{
 		DB:     db,
 		Hub:    hub,
 		Config: cfg,
 
-		UserRepo:           repository.NewUserRepository(db),
-		CrewRepo:           repository.NewCrewRepository(db),
-		MessageRepo:        repository.NewMessageRepository(db),
-		FriendRepo:         repository.NewFriendRepository(db),
-		ConvRepo:           repository.NewConversation(db),
-		ChatHistoryService: services.NewChatHistoryService(repository.NewMessageRepository(db)),
-		MessageService: services.NewMessageService(
-			repository.NewMessageRepository(db),
-			repository.NewUserRepository(db),
-			repository.NewCrewRepository(db)),
-		FriendService: services.NewFriendService(
-			repository.NewUserRepository(db),
-			repository.NewFriendRepository(db),
-		),
-		CrewService: services.NewCrewService(
-			db,
-			repository.NewCrewRepository(db),
-			repository.NewUserRepository(db),
-		),
+		//repository
+		UserRepo:    userRepo,
+		CrewRepo:    crewRepo,
+		MessageRepo: messageRepo,
+		FriendRepo:  friendRepo,
+		ConvRepo:    convRepo,
+
+		//services
+		ChatHistoryService: services.NewChatHistoryService(messageRepo),
+		MessageService:     services.NewMessageService(messageRepo, userRepo, crewRepo),
+		FriendService:      services.NewFriendService(userRepo, friendRepo),
+		CrewService:        services.NewCrewService(db, crewRepo, userRepo),
+		EmailService:       emailService,
+		AuthService:        authService,
 	}
 }

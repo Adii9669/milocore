@@ -24,6 +24,7 @@ type AppConfig struct {
 		SMTPUser  string `env:"SMTP_USER,required"`
 		SMTPPass  string `env:"SMTP_PASS,required"`
 		EmailFrom string `env:"EMAIL_FROM,required"`
+		ResendApi string `env:"RESEND_API,required"`
 	}
 
 	// DatabaseConfig holds the database connection string.
@@ -32,8 +33,8 @@ type AppConfig struct {
 	}
 
 	// TokenConfig holds the secret for JWT/JWE tokens.
-	Token struct {
-		Secret string `env:"TOKEN_KEY,required"`
+	Secret struct {
+		TOKEN string `env:"TOKEN_KEY,required"`
 	}
 
 	CHECK_ENV struct {

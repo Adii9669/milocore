@@ -18,6 +18,17 @@ require github.com/google/uuid v1.6.0
 
 require github.com/go-chi/chi/v5 v5.2.4
 
+require (
+	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/kr/text v0.2.0 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/rogpeppe/go-internal v1.14.1 // indirect
+	github.com/stretchr/testify v1.11.1
+	gopkg.in/yaml.v3 v3.0.1 // indirect
+)
+
+require github.com/resend/resend-go/v3 v3.3.0 // direct
+
 require golang.org/x/time v0.15.0 // direct
 
 require github.com/caarlos0/env/v6 v6.10.1 //direct
@@ -38,6 +49,4 @@ require (
 	golang.org/x/sync v0.16.0 // indirect
 	golang.org/x/sys v0.35.0 // indirect
 	golang.org/x/text v0.28.0 // indirect
-	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
-	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df // direct
 )

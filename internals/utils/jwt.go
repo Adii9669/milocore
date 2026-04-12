@@ -1,8 +1,10 @@
 package utils
 
 import (
+	"chat-server/internals/config"
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -16,39 +18,51 @@ type JWTClaims struct {
 	UserID   string `json:"userId"`
 }
 
-const TokenExpiryDuration = 24 * time.Hour
+const (
+	AccessTokenExpiry  = 15 * time.Minute
+	RefreshTokenExpiry = 7 * 24 * time.Hour
+)
 
-func GenerateToken(userId uuid.UUID, name string) (string, error) {
-	return GenerateTokenWithExpiry(userId, name, TokenExpiryDuration)
+// for getting the jwtkey
+func jwtkey() ([]byte, error) {
+	key := []byte(config.Cfg.Secret.TOKEN)
+	if len(key) == 0 {
+		return nil, fmt.Errorf("TOKEN secret is not set")
+	}
+	return key, nil
 }
 
-func GenerateTokenWithExpiry(userId uuid.UUID, name string, expiry time.Duration) (string, error) {
-	jwtkey := []byte(os.Getenv("TOKEN_KEY"))
-
-	// log.Println("GENERATING TOKEN WITH KEY:", string(jwtkey)) // Add this line
-	if len(jwtkey) == 0 {
-		return "", fmt.Errorf("JWT_SECRET_KEY environment variable not set")
+// GenerateAccessToken — short lived, 15 minutes
+func GenerateAccessToken(userId uuid.UUID, username string) (string, error) {
+	key, err := jwtkey()
+	if err != nil {
+		return "", err
 	}
-	// Create the claims for the token.
-	expiresAt := time.Now().Add(expiry)
+
 	claims := JWTClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(expiresAt),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(AccessTokenExpiry)),
 		},
 		UserID:   userId.String(),
-		Username: name,
+		Username: username,
 	}
 
-	//create token
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
-	//sign in with the token
-	signedToken, err := token.SignedString(jwtkey)
-	if err != nil {
-		return "", fmt.Errorf("failed to sign token: %w", err)
-	}
+	return token.SignedString(key)
+}
 
-	return signedToken, nil
+// GenerateRefreshToken — random 32 byte hex string, NOT a JWT
+// We store its hash in DB, send the raw value in the cookie
+func GenerateRefreshToken() (raw string, hash string, err error) {
+
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		return "", "", fmt.Errorf("failed to generate refresh token: %w", err)
+	}
+	raw = hex.EncodeToString(b)
+	hash = HashOTP(raw, "refresh")
+	return raw, hash, nil
 
 }
 
@@ -57,10 +71,9 @@ func GenerateTokenWithExpiry(userId uuid.UUID, name string, expiry time.Duration
 func ValidateToken(tokenString string) (*JWTClaims, error) {
 
 	//get the key
-	jwtKey := []byte(os.Getenv("TOKEN_KEY"))
-	// log.Println("GENERATING TOKEN WITH KEY:", string(jwtKey)) // Add this line
-	if len(jwtKey) == 0 {
-		return nil, fmt.Errorf("KEY env not set")
+	key, err := jwtkey()
+	if err != nil {
+		return nil, err
 	}
 
 	// Parse the token with our custom claims struct.
@@ -70,17 +83,20 @@ func ValidateToken(tokenString string) (*JWTClaims, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
-		return jwtKey, nil
+		return key, nil
 	})
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse token: %w", err)
 	}
-
 	// Check if the token is valid and extract the claims.
 	if claims, ok := token.Claims.(*JWTClaims); ok && token.Valid {
 		return claims, nil
 	}
 
 	return nil, fmt.Errorf("invalid token")
+}
+
+// kept for any existing callers — internally uses access token expiry now
+func GenerateToken(userID uuid.UUID, name string) (string, error) {
+	return GenerateAccessToken(userID, name)
 }

@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"os"
 	"strings"
 
 	//project api
@@ -24,7 +23,9 @@ func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		tokenString := ""
-		cookie, err := r.Cookie("token")
+
+		// check access_token cookie first
+		cookie, err := r.Cookie("access_token")
 		if err == nil {
 			tokenString = cookie.Value
 		} else {
@@ -41,7 +42,8 @@ func AuthMiddleware(next http.Handler) http.Handler {
 
 		claims, err := utils.ValidateToken(tokenString)
 		if err != nil {
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			w.Header().Set("X-Token-Expired", "true")
+			http.Error(w, "Token expired", http.StatusUnauthorized)
 			return
 		}
 
@@ -50,29 +52,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
-
 		ctx := context.WithValue(r.Context(), userIDKey, userID)
-
-		refreshedToken, err := utils.GenerateToken(userID, claims.Username)
-		if err == nil {
-			isProduction := os.Getenv("APP_ENV") == "production"
-			sameSite := http.SameSiteLaxMode
-			secure := false
-			if isProduction {
-				secure = true
-				sameSite = http.SameSiteNoneMode
-			}
-			http.SetCookie(w, &http.Cookie{
-				Name:     "token",
-				Value:    refreshedToken,
-				Path:     "/",
-				MaxAge:   int(utils.TokenExpiryDuration.Seconds()),
-				HttpOnly: true,
-				Secure:   secure,
-				SameSite: sameSite,
-			})
-		}
-
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

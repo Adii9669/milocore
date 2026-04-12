@@ -39,11 +39,12 @@ func SetUpRouter(app *app.App) http.Handler {
 	--------------------------------------------------------- */
 
 	r.Route("/auth", func(r chi.Router) {
-		r.Post("/register", auth.RegisterHandler(app.UserRepo))
-		r.Post("/login", auth.LoginHandler(app.UserRepo))
-		r.Post("/verify-otp", auth.VerifyOtpHandler(app.UserRepo))
+		r.Post("/register", auth.RegisterHandler(app.AuthService))
+		r.Post("/login", auth.LoginHandler(app.AuthService))
+		r.Post("/verify-otp", auth.VerifyOtpHandler(app.AuthService))
+		r.Post("/resend-otp", auth.ResendOTPHandler(app.AuthService))
 		r.Post("/check-availability", auth.CheckAvailablityHandler)
-
+		r.Post("/auth/refresh", auth.RefreshHandler(app.AuthService))
 	})
 
 	/* ---------------------------------------------------------
@@ -82,8 +83,6 @@ func SetUpRouter(app *app.App) http.Handler {
 			})
 		})
 
-		//member
-
 		// User
 		r.Get("/me", authHandler.Me)
 		r.Get("/users", authHandler.GetUsers)
@@ -114,15 +113,14 @@ func SetUpRouter(app *app.App) http.Handler {
 		})
 
 		// Logout
-		r.Post("/logout", auth.LogoutHandler)
+		r.Post("/logout", auth.LogoutHandler(app.AuthService))
 	})
 
-	if os.Getenv("APP_ENV") == "local" {
-		chi.Walk(r, func(method, route string, handler http.Handler, middlewares ...func(http.Handler) http.Handler) error {
-			log.Printf("%s %s\n", method, route)
-			return nil
-		})
-	}
+	// DEBUG: show all registered routes
+	chi.Walk(r, func(method, route string, handler http.Handler, middlewares ...func(http.Handler) http.Handler) error {
+		log.Printf("%s %s\n", method, route)
+		return nil
+	})
 
 	// CORS Configuration
 	/* ---------------------------------------------------------
