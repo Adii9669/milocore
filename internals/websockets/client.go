@@ -31,8 +31,12 @@ type Client struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 
-	messageService services.MessageService
-	limiter        *rate.Limiter
+	messageService  services.MessageService
+	messageLimiter  *rate.Limiter
+	typingLimiter   *rate.Limiter
+	readLimiter     *rate.Limiter
+	presenceLimiter *rate.Limiter
+	lastTyping      time.Time
 }
 
 func NewClient(
@@ -44,15 +48,18 @@ func NewClient(
 	messageService services.MessageService,
 ) *Client {
 	return &Client{
-		conn:           conn,
-		send:           make(chan []byte, 256),
-		userID:         userID,
-		crews:          make(map[uuid.UUID]bool),
-		hub:            hub,
-		ctx:            ctx,
-		cancel:         cancel,
-		messageService: messageService,
-		limiter:        rate.NewLimiter(10, 20),
+		conn:            conn,
+		send:            make(chan []byte, 256),
+		userID:          userID,
+		crews:           make(map[uuid.UUID]bool),
+		hub:             hub,
+		ctx:             ctx,
+		cancel:          cancel,
+		messageService:  messageService,
+		messageLimiter:  rate.NewLimiter(rate.Every(200*time.Millisecond), 5),
+		typingLimiter:   rate.NewLimiter(rate.Every(500*time.Millisecond), 2),
+		readLimiter:     rate.NewLimiter(rate.Every(100*time.Millisecond), 10),
+		presenceLimiter: rate.NewLimiter(rate.Every(1*time.Second), 2),
 	}
 }
 
@@ -83,11 +90,6 @@ func (c *Client) readPump() {
 			break
 		}
 
-		if !c.limiter.Allow() {
-			log.Printf("rate limit exceeded user=%s", c.userID)
-			continue
-		}
-
 		var wsMsg WSMessage
 		if err := json.Unmarshal(data, &wsMsg); err != nil {
 			continue
@@ -99,17 +101,73 @@ func (c *Client) readPump() {
 		case "leave_crew":
 			c.hub.leaveCrew(c, wsMsg.CrewID)
 		case "dm":
+			if !c.messageLimiter.Allow() {
+				log.Printf(
+					"dm rate limit user=%s",
+					c.userID,
+				)
+				continue
+			}
 			c.handleDmMessage(wsMsg)
 		case "crew_message":
+			if !c.messageLimiter.Allow() {
+				log.Printf(
+					"rate limit type=%s user=%s ip=%s",
+					wsMsg.Type,
+					c.userID,
+					c.conn.RemoteAddr(),
+				)
+				continue
+			}
 			c.handleCrewMessage(wsMsg)
-		case "typing":
+		case "typing_start":
+
+			if !c.typingLimiter.Allow() {
+
+				log.Printf(
+					"rate limit type=%s user=%s ip=%s",
+					wsMsg.Type,
+					c.userID,
+					c.conn.RemoteAddr(),
+				)
+				continue
+			}
+			if time.Since(c.lastTyping) < 2*time.Second {
+				continue
+			}
+
+			c.lastTyping = time.Now()
+
+			wsMsg.UserID = c.userID
+			c.hub.broadcastTyping(c, wsMsg)
+
+		case "typing_stop":
+
+			wsMsg.UserID = c.userID
 			c.hub.broadcastTyping(c, wsMsg)
 		case "delivered":
+			if !c.readLimiter.Allow() {
+				continue
+			}
 			c.handleDelivered(wsMsg)
 		case "read":
+			if !c.readLimiter.Allow() {
+				continue
+			}
+
+			log.Printf(
+				"rate limit type=%s user=%s ip=%s",
+				wsMsg.Type,
+				c.userID,
+				c.conn.RemoteAddr(),
+			)
 			c.handleRead(wsMsg)
 		default:
-			log.Printf("unknow ws message type=%s from the user=%s", wsMsg.Type, c.userID)
+			log.Printf(
+				"unknown ws type=%s user=%s",
+				wsMsg.Type,
+				c.userID,
+			)
 		}
 
 	}

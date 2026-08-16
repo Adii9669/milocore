@@ -16,6 +16,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
 	"github.com/gorilla/handlers" //for the websockets connection
+	httpSwagger "github.com/swaggo/http-swagger"
 	// "github.com/gorilla/mux"      //Mux for the routing of private and public pages (user)
 )
 
@@ -37,13 +38,17 @@ func SetUpRouter(app *app.App) http.Handler {
 	   PUBLIC ROUTES (NO AUTH)
 	--------------------------------------------------------- */
 
+	r.Get("/swagger/*", httpSwagger.Handler(
+		httpSwagger.URL("/swagger/doc.json"),
+	))
 	r.Route("/auth", func(r chi.Router) {
 		r.Post("/register", auth.RegisterHandler(app.AuthService))
 		r.Post("/login", auth.LoginHandler(app.AuthService))
 		r.Post("/verify-otp", auth.VerifyOtpHandler(app.AuthService))
 		r.Post("/resend-otp", auth.ResendOTPHandler(app.AuthService))
 		r.Post("/check-availability", auth.CheckAvailablityHandler)
-		r.Post("/auth/refresh", auth.RefreshHandler(app.AuthService))
+		r.Post("/refresh", auth.RefreshHandler(app.AuthService))
+
 	})
 
 	/* ---------------------------------------------------------

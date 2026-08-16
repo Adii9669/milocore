@@ -13,6 +13,7 @@ import (
 
 type MessageRepository interface {
 	SaveMessage(context.Context, *models.Message) error
+
 	GetDmMessageHistory(
 		ctx context.Context,
 		userA uuid.UUID,
