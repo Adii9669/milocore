@@ -9,6 +9,7 @@ import (
 	"chat-server/internals/middleware"
 	"chat-server/internals/websockets"
 	"log"
+	"os"
 
 	// go libraries
 	"net/http"
