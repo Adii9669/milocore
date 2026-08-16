@@ -19,12 +19,13 @@ type AppConfig struct {
 
 	// EmailConfig holds all settings for the email service.
 	Email struct {
-		SMTPHost  string `env:"SMTP_HOST,required"`
-		SMTPPort  string `env:"SMTP_PORT,required"`
-		SMTPUser  string `env:"SMTP_USER,required"`
-		SMTPPass  string `env:"SMTP_PASS,required"`
-		EmailFrom string `env:"EMAIL_FROM,required"`
-		ResendApi string `env:"RESEND_API,required"`
+		SMTPHost    string `env:"SMTP_HOST,required"`
+		SMTPPort    string `env:"SMTP_PORT,required"`
+		SMTPUser    string `env:"SMTP_USER,required"`
+		SMTPPass    string `env:"SMTP_PASS,required"`
+		EmailFrom   string `env:"EMAIL_FROM,required"`
+		ResendApi   string `env:"RESEND_API"`
+		SendGridKey string `env:"SEND_GRID_KEY,required"`
 	}
 
 	// DatabaseConfig holds the database connection string.

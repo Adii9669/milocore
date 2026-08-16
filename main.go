@@ -6,6 +6,7 @@ import (
 	"time"
 
 	//my packages
+	_ "chat-server/docs"
 	"chat-server/internals/app"
 	"chat-server/internals/config"
 	"chat-server/internals/db"
@@ -23,6 +24,15 @@ func StartCleanupScheduler() {
 	}()
 }
 
+// @title Chat Server API
+// @version 1.0
+// @description Discord-like chat backend API
+// @host localhost:8080
+// @BasePath /
+
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
 func main() {
 
 	//Load the config

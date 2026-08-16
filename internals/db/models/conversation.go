@@ -7,9 +7,10 @@ import (
 )
 
 type Conversation struct {
-	ID   string `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()" json:"id"`
-	Type string `gorm:"size:30;not null;default:'dm'" json:"type"` // "dm" | "group" | "crew_link"(optional)
-	// optional display name (for group DMs); for 1:1 can be null
+	ID string `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()" json:"id"`
+	// "dm" | "group" | "crew_link"(optional) optional display name (for group DMs); for 1:1 can be null
+
+	Type          string    `gorm:"size:30;not null;default:'dm'" json:"type"`
 	Title         *string   `gorm:"size:255" json:"title,omitempty"`
 	LastMessageID *string   `gorm:"type:uuid;index" json:"last_message_id,omitempty"`
 	LastUpdatedAt time.Time `gorm:"index" json:"last_updated_at"`

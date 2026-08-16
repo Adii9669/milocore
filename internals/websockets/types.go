@@ -21,14 +21,17 @@ const (
 
 // Creating the protocol for sending the message through the websockets
 type WSMessage struct {
-	Type MessageType `json:"type"`
-
-	CrewID     uuid.UUID `json:"crewId,omitempty"`
-	ReceiverID uuid.UUID `json:"receiverId,omitempty"`
-
-	Content   string             `json:"content,omitempty"`
-	MessageID *uuid.UUID         `json:"messageId,omitempty"`
-	Status    MessageStatusEvent `json:"status"`
+	Type       MessageType        `json:"type"`
+	CrewID     uuid.UUID          `json:"crewId,omitempty"`
+	ReceiverID uuid.UUID          `json:"receiverId,omitempty"`
+	UserID     uuid.UUID          `json:"user_id,omitempty"`
+	Content    string             `json:"content,omitempty"`
+	MessageID  *uuid.UUID         `json:"messageId,omitempty"`
+	Status     MessageStatusEvent `json:"status"`
+	FileURL    *string
+	FileName   *string
+	FileSize   *int64
+	MimeType   *string
 }
 
 type MessageStatusEvent struct {

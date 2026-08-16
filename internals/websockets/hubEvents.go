@@ -51,18 +51,30 @@ func (h *Hub) leaveCrew(client *Client, crewID uuid.UUID) {
 }
 
 // ---------------------------------------------------------------typing
-func (h *Hub) broadcastTyping(client *Client, msg WSMessage) {
+func (h *Hub) broadcastTyping(sender *Client, msg WSMessage) {
 
+	//validate the crews exists
 	crewClients, ok := h.crews[msg.CrewID]
 	if !ok {
 		return
 	}
 
-	payload, _ := json.Marshal(msg)
+	payload, err := json.Marshal(msg)
+	if err != nil {
+		// log it, don't ignore
+		return
+	}
 
 	for c := range crewClients {
-		if c != client {
-			c.send <- payload
+		if c == sender {
+			continue
+		}
+		//non blocking send
+		select {
+		case c.send <- payload:
+		default:
+			close(c.send)
+			delete(h.clients, c)
 		}
 	}
 }
