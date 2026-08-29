@@ -68,6 +68,7 @@ func (s *MinioStorage) CheckConnection(ctx context.Context) error {
 	return nil
 }
 
+// --For Deletion
 func (s *MinioStorage) Delete(ctx context.Context, bucket, objectName string) error {
 	return s.Client.RemoveObject(
 		ctx,
