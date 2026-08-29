@@ -5,6 +5,8 @@ import (
 	"chat-server/internals/repository"
 	"chat-server/internals/services"
 	"chat-server/internals/websockets"
+	"chat-server/storage"
+	"context"
 
 	"gorm.io/gorm"
 )
@@ -30,6 +32,9 @@ type App struct {
 	ChatHistoryService services.ChatHistroyService
 	EmailService       *services.EmailService
 	AuthService        *services.AuthService
+
+	//Storage
+	FileStorage storage.FileStorage
 }
 
 // Constructor for the app
@@ -44,10 +49,19 @@ func NewApp(
 	friendRepo := repository.NewFriendRepository(db)
 	convRepo := repository.NewConversation(db)
 	sessionRepo := repository.NewSessionRepository(db)
-
 	// services
 	emailService := services.NewEmailService()
 	authService := services.NewAuthService(userRepo, sessionRepo, emailService)
+
+	//storage
+	minioStorage, err := storage.NewMinioStorage(*cfg)
+	// this need to be remove later
+	if err != nil {
+		panic("failed to initialize MinIO: " + err.Error())
+	}
+	if err := minioStorage.CheckConnection(context.Background()); err != nil {
+		panic("MinIO connection failed: " + err.Error())
+	}
 
 	return &App{
 		DB:     db,
@@ -68,5 +82,8 @@ func NewApp(
 		CrewService:        services.NewCrewService(db, crewRepo, userRepo),
 		EmailService:       emailService,
 		AuthService:        authService,
+
+		//storage
+		FileStorage: minioStorage,
 	}
 }

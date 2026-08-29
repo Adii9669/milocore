@@ -24,15 +24,15 @@ func StartCleanupScheduler() {
 	}()
 }
 
-// @title Chat Server API
-// @version 1.0
-// @description Discord-like chat backend API
-// @host localhost:8080
-// @BasePath /
+//	@title			Chat Server API
+//	@version		1.0
+//	@description	Discord-like chat backend API
+//	@host			localhost:8000
+//	@BasePath		/
 
-// @securityDefinitions.apikey BearerAuth
-// @in header
-// @name Authorization
+// @securityDefinitions.apikey	BearerAuth
+// @in							header
+// @name						Authorization
 func main() {
 
 	//Load the config
@@ -45,13 +45,14 @@ func main() {
 	//connecting to the database
 	database := db.ConnectToDB()
 
-	//3.clean UP
+	//3.clean UP This is the use case of the go function to achive concurrency
 	StartCleanupScheduler()
 
 	//4. Create a websockets instance and run it
 	hub := websockets.NewHub()
 	go hub.Run()
 
+	//Setup the config for global use case
 	cfg := &config.Cfg
 
 	//5.create app container (DI)

@@ -8,6 +8,7 @@ import (
 )
 
 // variable of type AppConfig struct
+// declaring the gloabal variable so it can be used all over the project
 var Cfg AppConfig
 
 type AppConfig struct {
@@ -45,6 +46,12 @@ type AppConfig struct {
 	OAuth struct {
 		ClientID     string `env:"GOOGLE_OAUTH_CLIENT_ID"`
 		ClientSecret string `env:"GOOGLE_OAUTH_CLIENT_SECRET"`
+	}
+	MinIO struct {
+		Endpoint string `env:"MINIO_ENDPOINT,required"`
+		Username string `env:"MINIO_ROOT_USER,required"`
+		Password string `env:"MINIO_ROOT_PASSWORD,required"`
+		Bucket   string `env:"MINIO_BUCKET,required"`
 	}
 }
 

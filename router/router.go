@@ -5,11 +5,11 @@ import (
 	"chat-server/internals/handlers/auth"
 	"chat-server/internals/handlers/chathistory"
 	"chat-server/internals/handlers/crews"
+	"chat-server/internals/handlers/files"
 	"chat-server/internals/handlers/friends"
 	"chat-server/internals/middleware"
 	"chat-server/internals/websockets"
 	"log"
-	"os"
 
 	// go libraries
 	"net/http"
@@ -17,8 +17,9 @@ import (
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
 	"github.com/gorilla/handlers" //for the websockets connection
-	httpSwagger "github.com/swaggo/http-swagger"
+
 	// "github.com/gorilla/mux"      //Mux for the routing of private and public pages (user)
+	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 func SetUpRouter(app *app.App) http.Handler {
@@ -42,6 +43,7 @@ func SetUpRouter(app *app.App) http.Handler {
 	r.Get("/swagger/*", httpSwagger.Handler(
 		httpSwagger.URL("/swagger/doc.json"),
 	))
+
 	r.Route("/auth", func(r chi.Router) {
 		r.Post("/register", auth.RegisterHandler(app.AuthService))
 		r.Post("/login", auth.LoginHandler(app.AuthService))
@@ -60,8 +62,8 @@ func SetUpRouter(app *app.App) http.Handler {
 	crewHandler := crews.NewCrewHandler(app.CrewService)
 	authHandler := auth.NewAuthHandler(app.UserRepo)
 	frndHandler := friends.NewFriendHandler(app.FriendService)
-
 	chathistoryHandler := chathistory.NewHandler(app.ChatHistoryService)
+	fileHandler := files.NewFileHandler(app.FileStorage)
 
 	//Protected Routes
 	r.Route("/api", func(r chi.Router) {
@@ -119,6 +121,10 @@ func SetUpRouter(app *app.App) http.Handler {
 
 		// Logout
 		r.Post("/logout", auth.LogoutHandler(app.AuthService))
+
+		//files
+		r.Post("/files/upload", fileHandler.Upload)
+		// r.Delete("/files/{objectName}", fileHandler.Delete)
 	})
 
 	// DEBUG: show all registered routes
