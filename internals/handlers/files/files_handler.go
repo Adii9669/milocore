@@ -27,6 +27,14 @@ func (h *FileHandler) Upload(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
+	if h.storage == nil {
+		http.Error(
+			w,
+			"file storage is not configured",
+			http.StatusServiceUnavailable,
+		)
+		return
+	}
 	fmt.Println("Received file:", header.Filename)
 	fmt.Println("Size:", header.Size)
 	fmt.Println("Content-Type:", header.Header.Get("Content-Type"))

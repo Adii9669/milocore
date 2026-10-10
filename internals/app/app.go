@@ -54,15 +54,23 @@ func NewApp(
 	authService := services.NewAuthService(userRepo, sessionRepo, emailService)
 
 	//storage
-	minioStorage, err := storage.NewMinioStorage(*cfg)
-	// this need to be remove later
-	if err != nil {
-		panic("failed to initialize MinIO: " + err.Error())
-	}
-	if err := minioStorage.CheckConnection(context.Background()); err != nil {
-		panic("MinIO connection failed: " + err.Error())
-	}
+	var fileStorage storage.FileStorage
 
+	if cfg.MinIO.Endpoint == "" && cfg.MinIO.Username == "" && cfg.MinIO.Bucket == "" && cfg.MinIO.Password == "" {
+	} else if cfg.MinIO.Endpoint == "" || cfg.MinIO.Username == "" || cfg.MinIO.Bucket == "" || cfg.MinIO.Password == "" {
+		panic("incomplete MinIO configuration: all four MinIO environment variables must be set")
+	} else {
+		//storage
+		minioStorage, err := storage.NewMinioStorage(*cfg)
+		// this need to be remove later
+		if err != nil {
+			panic("failed to initialize MinIO: " + err.Error())
+		}
+		if err := minioStorage.CheckConnection(context.Background()); err != nil {
+			panic("MinIO connection failed: " + err.Error())
+		}
+		fileStorage = minioStorage
+	}
 	return &App{
 		DB:     db,
 		Hub:    hub,
@@ -84,6 +92,6 @@ func NewApp(
 		AuthService:        authService,
 
 		//storage
-		FileStorage: minioStorage,
+		FileStorage: fileStorage,
 	}
 }
