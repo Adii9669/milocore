@@ -1,7 +1,6 @@
 package services
 
 import (
-	"chat-server/internals/config"
 	"fmt"
 	"log"
 
@@ -19,10 +18,10 @@ type EmailService struct {
 
 func NewEmailService() *EmailService {
 	return &EmailService{
-		client:      resend.NewClient(config.Cfg.Email.ResendApi),
-		apiKey:      config.Cfg.Email.ResendApi,
-		from:        config.Cfg.Email.EmailFrom,
-		sendGridKey: config.Cfg.Email.SendGridKey,
+		// client:      resend.NewClient(config.Cfg.Email.ResendApi),
+		// apiKey:      config.Cfg.Email.ResendApi,
+		// from:        config.Cfg.Email.EmailFrom,
+		// sendGridKey: config.Cfg.Email.SendGridKey,
 	}
 }
 
