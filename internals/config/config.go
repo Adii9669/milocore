@@ -48,10 +48,10 @@ type AppConfig struct {
 		ClientSecret string `env:"GOOGLE_OAUTH_CLIENT_SECRET"`
 	}
 	MinIO struct {
-		Endpoint string `env:"MINIO_ENDPOINT,required"`
-		Username string `env:"MINIO_ROOT_USER,required"`
-		Password string `env:"MINIO_ROOT_PASSWORD,required"`
-		Bucket   string `env:"MINIO_BUCKET,required"`
+		Endpoint string `env:"MINIO_ENDPOINT"`
+		Username string `env:"MINIO_ROOT_USER"`
+		Password string `env:"MINIO_ROOT_PASSWORD"`
+		Bucket   string `env:"MINIO_BUCKET"`
 	}
 }
 
