@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"regexp"
 	"time"
 
@@ -114,6 +113,10 @@ func (s *AuthService) Login(ctx context.Context, username, password string) (*mo
 		return nil, "", "", err
 	}
 
+	if user.PasswordHash == nil {
+		return nil, "", "", ErrInvalidCredentials
+	}
+
 	//2.check password
 	if err := bcrypt.CompareHashAndPassword(
 		[]byte(*user.PasswordHash),
@@ -122,9 +125,9 @@ func (s *AuthService) Login(ctx context.Context, username, password string) (*mo
 	}
 
 	//3.check verification is verified or not
-	if !user.Verified {
-		return nil, "", "", ErrNotVerified
-	}
+	// if !user.Verified {
+	// 	return nil, "", "", ErrNotVerified
+	// }
 
 	// userID, err := uuid.Parse(user.ID.String())
 	// if err != nil {
@@ -150,34 +153,31 @@ func (s *AuthService) Login(ctx context.Context, username, password string) (*mo
 func (s *AuthService) Register(ctx context.Context, username, email, password string) error {
 
 	// 1. check existing user
-	existingUser, err := s.userRepo.FindByEmail(ctx, email)
+	_, err := s.userRepo.FindByEmail(ctx, email)
 	if err == nil {
-		if existingUser.Verified {
-			return fmt.Errorf("user already exists")
-		}
-
-		otp, err := utils.GenerateOtp()
-		if err != nil {
-			return err
-		}
-
-		//hasing the otp
-		salt := uuid.NewString()
-		otpHash := utils.HashOTP(otp, salt)
-		expiresAt := time.Now().Add(5 * time.Minute)
-
-		err = s.userRepo.UpdateOTP(ctx, existingUser.ID, otpHash, salt, expiresAt)
-		if err != nil {
-			return err
-		}
-
-		err = s.emailService.SendOTP(email, otp)
-		if err != nil {
-			log.Println("email resend failed:", err)
-		}
-
-		return nil
+		return fmt.Errorf("user already exists")
 	}
+
+	// otp, err := utils.GenerateOtp()
+	// if err != nil {
+	// 	return err
+	// }
+
+	//hasing the otp
+	// salt := uuid.NewString()
+	// otpHash := utils.HashOTP(otp, salt)
+	// expiresAt := time.Now().Add(5 * time.Minute)
+
+	// err = s.userRepo.UpdateOTP(ctx, existingUser.ID, otpHash, salt, expiresAt)
+	// if err != nil {
+	// 	return err
+	// }
+
+	// err = s.emailService.SendOTP(email, otp)
+	// if err != nil {
+	// 	log.Println("email resend failed:", err)
+	// }
+
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return err // real DB error
 	}
@@ -199,25 +199,24 @@ func (s *AuthService) Register(ctx context.Context, username, email, password st
 	hashedPasswordStr := string(passwordHash)
 
 	//3.generate OTP
-	otp, err := utils.GenerateOtp()
-	if err != nil {
-		return err
-	}
+	// otp, err := utils.GenerateOtp()
+	// if err != nil {
+	// 	return err
+	// }
 
-	salt := uuid.NewString()
-	otpHash := utils.HashOTP(otp, salt)
-
-	expiresAt := time.Now().Add(5 * time.Minute)
+	// salt := uuid.NewString()
+	// otpHash := utils.HashOTP(otp, salt)
+	// expiresAt := time.Now().Add(5 * time.Minute)
 
 	//4.Create the User
 	newUser := models.User{
-		Name:          username,
-		Email:         email,
-		PasswordHash:  &hashedPasswordStr,
-		Verified:      false,
-		VerifyOTPHash: otpHash,
-		VerifySalt:    salt,
-		OTPExpiresAt:  &expiresAt,
+		Name:         username,
+		Email:        email,
+		PasswordHash: &hashedPasswordStr,
+		Verified:     false,
+		// VerifyOTPHash: otpHash,
+		// VerifySalt:   salt,
+		// OTPExpiresAt: &expiresAt,
 	}
 
 	// 5.Save the User
@@ -227,12 +226,12 @@ func (s *AuthService) Register(ctx context.Context, username, email, password st
 	}
 
 	//6.async mail
-	go func() {
-		err := s.emailService.SendOTP(email, otp)
-		if err != nil {
-			log.Println("failed to send the otp:", err)
-		}
-	}()
+	// go func() {
+	// 	err := s.emailService.SendOTP(email, otp)
+	// 	if err != nil {
+	// 		log.Println("failed to send the otp:", err)
+	// 	}
+	// }()
 
 	return nil
 }
