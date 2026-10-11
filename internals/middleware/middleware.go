@@ -36,7 +36,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 		}
 
 		if tokenString == "" {
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
 
@@ -49,7 +49,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 
 		userID, err := uuid.Parse(claims.UserID)
 		if err != nil {
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
 		ctx := context.WithValue(r.Context(), userIDKey, userID)
