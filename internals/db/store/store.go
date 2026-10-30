@@ -32,12 +32,12 @@ func (s *Store) MarkMessageRead(ctx context.Context, messageID string) error {
 	return s.DB.WithContext(ctx).Model(&models.Message{}).Where("id = ?", messageID).Update("read", true).Error
 }
 
-// IsUserCrewMember checks if user is a member of the crew.
-func (s *Store) IsUserCrewMember(ctx context.Context, userID, crewID string) (bool, error) {
+// IsUserChannelMember checks if user is a member of the channel.
+func (s *Store) IsUserChannelMember(ctx context.Context, userID, channelID string) (bool, error) {
 	var c int64
 	if err := s.DB.WithContext(ctx).
-		Model(&models.Crew{}).
-		Where("user_id = ? AND crew_id = ?", userID, crewID).
+		Model(&models.Channel{}).
+		Where("user_id = ? AND channel_id = ?", userID, channelID).
 		Count(&c).Error; err != nil {
 		return false, err
 	}

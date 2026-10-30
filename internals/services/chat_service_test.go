@@ -12,11 +12,19 @@ import (
 )
 
 type MockMessageRepo struct {
-	GetCrewMessageHistoryFn func(ctx context.Context, crewID uuid.UUID, limit int, cursor *time.Time) ([]models.Message, error)
-	GetDmMessageHistoryFn   func(ctx context.Context, userA, userB uuid.UUID, limit int, cursor *time.Time) ([]models.Message, error)
-	MarkDeliveredFn         func(ctx context.Context, messageID uuid.UUID) error
-	MarkReadFn              func(ctx context.Context, userID, otherUserID uuid.UUID) error
-	SaveMessageFn           func(context.Context, *models.Message) error
+	GetChannelMessageHistoryFn func(ctx context.Context, channelID uuid.UUID, limit int, cursor *time.Time) ([]models.Message, error)
+	GetDmMessageHistoryFn      func(ctx context.Context, userA, userB uuid.UUID, limit int, cursor *time.Time) ([]models.Message, error)
+	MarkDeliveredFn            func(ctx context.Context, messageID uuid.UUID) error
+	MarkReadFn                 func(ctx context.Context, userID, otherUserID uuid.UUID) error
+	SaveMessageFn              func(context.Context, *models.Message) error
+	FindMessageByIDFn          func(context.Context, uuid.UUID) (*models.Message, error)
+}
+
+func (m *MockMessageRepo) FindMessageByID(ctx context.Context, id uuid.UUID) (*models.Message, error) {
+	if m.FindMessageByIDFn != nil {
+		return m.FindMessageByIDFn(ctx, id)
+	}
+	return nil, nil
 }
 
 func (m *MockMessageRepo) SaveMessage(ctx context.Context, msg *models.Message) error {
@@ -40,15 +48,15 @@ func (m *MockMessageRepo) MarkDelivered(ctx context.Context, messageID uuid.UUID
 	return nil
 }
 
-func (m *MockMessageRepo) GetCrewMessageHistory(
+func (m *MockMessageRepo) GetChannelMessageHistory(
 	ctx context.Context,
-	crewID uuid.UUID,
+	channelID uuid.UUID,
 	limit int,
 	cursor *time.Time,
 ) ([]models.Message, error) {
 
-	if m.GetCrewMessageHistoryFn != nil {
-		return m.GetCrewMessageHistoryFn(ctx, crewID, limit, cursor)
+	if m.GetChannelMessageHistoryFn != nil {
+		return m.GetChannelMessageHistoryFn(ctx, channelID, limit, cursor)
 	}
 	return nil, nil
 }
@@ -60,13 +68,13 @@ func (m *MockMessageRepo) GetDmMessageHistory(ctx context.Context, userA, userB 
 }
 
 // Testing the Success
-func TestCrewHistory_Success(t *testing.T) {
+func TestChannelHistory_Success(t *testing.T) {
 	ctx := context.Background()
-	crewID := uuid.New()
+	channelID := uuid.New()
 	userID := uuid.New()
 
 	mockRepo := &MockMessageRepo{
-		GetCrewMessageHistoryFn: func(ctx context.Context, crewID uuid.UUID, limit int, cursor *time.Time) ([]models.Message, error) {
+		GetChannelMessageHistoryFn: func(ctx context.Context, channelID uuid.UUID, limit int, cursor *time.Time) ([]models.Message, error) {
 
 			// 🔥 important: verify limit logic
 			assert.Equal(t, 50, limit)
@@ -83,23 +91,23 @@ func TestCrewHistory_Success(t *testing.T) {
 
 	service := NewChatHistoryService(mockRepo)
 
-	result, err := service.CrewHistory(ctx, crewID, userID, 0, nil)
+	result, err := service.ChannelHistory(ctx, channelID, userID, 0, nil)
 
 	assert.NoError(t, err)
 	assert.Len(t, result, 1)
 }
 
-func TestCrewHistory_Faliure(t *testing.T) {
+func TestChannelHistory_Faliure(t *testing.T) {
 	ctx := context.Background()
 
 	mockRepo := &MockMessageRepo{
-		GetCrewMessageHistoryFn: func(ctx context.Context, crewID uuid.UUID, limit int, cursor *time.Time) ([]models.Message, error) {
+		GetChannelMessageHistoryFn: func(ctx context.Context, channelID uuid.UUID, limit int, cursor *time.Time) ([]models.Message, error) {
 			return nil, errors.New("db error")
 		},
 	}
 	service := NewChatHistoryService(mockRepo)
 
-	result, err := service.CrewHistory(ctx, uuid.New(), uuid.New(), 10, nil)
+	result, err := service.ChannelHistory(ctx, uuid.New(), uuid.New(), 10, nil)
 
 	assert.Error(t, err)
 	assert.Nil(t, result)

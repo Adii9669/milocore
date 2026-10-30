@@ -26,35 +26,35 @@ func (h *Hub) SendToUser(userID uuid.UUID, payload []byte) {
 	}
 }
 
-// ------------------------------------------------------------------ joinCrew
-func (h *Hub) joinCrew(client *Client, crewID uuid.UUID) {
+// ------------------------------------------------------------------ joinChannel
+func (h *Hub) joinChannel(client *Client, channelID uuid.UUID) {
 
-	if _, ok := h.crews[crewID]; !ok {
-		h.crews[crewID] = make(map[*Client]bool)
+	if _, ok := h.channels[channelID]; !ok {
+		h.channels[channelID] = make(map[*Client]bool)
 	}
 
-	h.crews[crewID][client] = true
-	client.crews[crewID] = true
+	h.channels[channelID][client] = true
+	client.channels[channelID] = true
 }
 
-// ---------------------------------------------------------------leaveCrew
-func (h *Hub) leaveCrew(client *Client, crewID uuid.UUID) {
+// ---------------------------------------------------------------leaveChannel
+func (h *Hub) leaveChannel(client *Client, channelID uuid.UUID) {
 
-	if crewClient, ok := h.crews[crewID]; ok {
-		delete(crewClient, client)
+	if channelClient, ok := h.channels[channelID]; ok {
+		delete(channelClient, client)
 
-		if len(crewClient) == 0 {
-			delete(h.crews, crewID)
+		if len(channelClient) == 0 {
+			delete(h.channels, channelID)
 		}
 	}
-	delete(client.crews, crewID)
+	delete(client.channels, channelID)
 }
 
 // ---------------------------------------------------------------typing
 func (h *Hub) broadcastTyping(sender *Client, msg WSMessage) {
 
-	//validate the crews exists
-	crewClients, ok := h.crews[msg.CrewID]
+	//validate the channels exists
+	channelClients, ok := h.channels[msg.ChannelID]
 	if !ok {
 		return
 	}
@@ -65,7 +65,7 @@ func (h *Hub) broadcastTyping(sender *Client, msg WSMessage) {
 		return
 	}
 
-	for c := range crewClients {
+	for c := range channelClients {
 		if c == sender {
 			continue
 		}

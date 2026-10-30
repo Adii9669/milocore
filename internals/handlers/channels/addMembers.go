@@ -1,9 +1,8 @@
-package crews
+package channels
 
 import (
 	"chat-server/internals/middleware"
 	"chat-server/internals/utils"
-	"fmt"
 	"log"
 	"net/http"
 
@@ -11,7 +10,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func (h *CrewHandler) AddMember(w http.ResponseWriter, r *http.Request) {
+func (h *ChannelHandler) AddMember(w http.ResponseWriter, r *http.Request) {
 
 	defer r.Body.Close()
 	ctx := r.Context()
@@ -23,16 +22,16 @@ func (h *CrewHandler) AddMember(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//2.Parse crewID from URL
-	crewIDParam := chi.URLParam(r, "crewID")
-	crewID, err := uuid.Parse(crewIDParam)
+	//2.Parse channelID from URL
+	channelIDParam := chi.URLParam(r, "channelID")
+	channelID, err := uuid.Parse(channelIDParam)
 	if err != nil {
-		http.Error(w, "Invalid crew ID", http.StatusBadRequest)
+		http.Error(w, "Invalid channel ID", http.StatusBadRequest)
 		return
 	}
 
 	//3.Parse memberID from URL
-	memberIDParam := chi.URLParam(r, "memberID")
+	memberIDParam := chi.URLParam(r, "userID")
 	memberID, err := uuid.Parse(memberIDParam)
 	if err != nil {
 		http.Error(w, "Invalid user ID", http.StatusBadRequest)
@@ -40,16 +39,14 @@ func (h *CrewHandler) AddMember(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// // 4.check body for more info
-	// var request requests.UpdateCrewMember
+	// var request requests.UpdateChannelMember
 	// if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 	// 	http.Error(w, "Invalid request", http.StatusBadRequest)
 	// 	return
 	// }
 
 	//call the service
-	fmt.Printf("userID %s\n", userID)
-	fmt.Printf("userID %s\n", memberID)
-	err = h.crewService.AddMember(ctx, crewID, userID, memberID)
+	err = h.channelService.AddMember(ctx, channelID, userID, memberID)
 	if err != nil {
 		log.Println("AddMember error:", err)
 		h.handleError(w, err)

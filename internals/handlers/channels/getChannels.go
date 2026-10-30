@@ -1,4 +1,4 @@
-package crews
+package channels
 
 import (
 	"chat-server/internals/middleware"
@@ -11,7 +11,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func (h *CrewHandler) Getcrew(w http.ResponseWriter, r *http.Request) {
+func (h *ChannelHandler) GetChannels(w http.ResponseWriter, r *http.Request) {
 
 	defer r.Body.Close()
 	//1. always get the claims first authentication from middleware
@@ -22,21 +22,21 @@ func (h *CrewHandler) Getcrew(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response, err := h.crewService.GetCrews(ctx, userID)
+	response, err := h.channelService.GetChannels(ctx, userID)
 	if err != nil {
-		http.Error(w, "Failed to retrive the Crew", http.StatusUnauthorized)
+		http.Error(w, "Failed to retrive the Channel", http.StatusUnauthorized)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	utils.PrettyJSON(w, map[string]any{
-		"message": "Crews fetched successfully",
-		"crews":   response,
+		"message":  "Channels fetched successfully",
+		"channels": response,
 	})
 }
 
-func (h *CrewHandler) GetMembers(w http.ResponseWriter, r *http.Request) {
+func (h *ChannelHandler) GetMembers(w http.ResponseWriter, r *http.Request) {
 
 	defer r.Body.Close()
 	//1. always get the claims first authentication from middleware
@@ -47,8 +47,8 @@ func (h *CrewHandler) GetMembers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	crewIDStr := chi.URLParam(r, "crewID")
-	crewID, err := uuid.Parse(crewIDStr)
+	channelIDStr := chi.URLParam(r, "channelID")
+	channelID, err := uuid.Parse(channelIDStr)
 	if err != nil {
 		http.Error(w, "Invalid user ID", http.StatusBadRequest)
 		return
@@ -60,9 +60,9 @@ func (h *CrewHandler) GetMembers(w http.ResponseWriter, r *http.Request) {
 	// 	return
 	// }
 
-	response, err := h.crewService.GetMembers(ctx, crewID, userID)
+	response, err := h.channelService.GetMembers(ctx, channelID, userID)
 	if err != nil {
-		http.Error(w, "Failed to retrive the Crew", http.StatusUnauthorized)
+		h.handleError(w, err)
 		return
 	}
 

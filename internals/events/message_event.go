@@ -24,6 +24,18 @@ type MessageEvent struct {
 	SenderID   uuid.UUID
 	SenderName string
 
+	ReceiverID     *uuid.UUID
+	ChannelID      *uuid.UUID
+	FileURL        *string
+	FilePreviewURL *string
+	FileName       *string
+	FileSize       *int64
+	MimeType       *string
+}
+
+type MessageDeletionEvent struct {
+	MessageID  uuid.UUID
+	SenderID   uuid.UUID
 	ReceiverID *uuid.UUID
-	CrewID     *uuid.UUID
+	ChannelID  *uuid.UUID
 }

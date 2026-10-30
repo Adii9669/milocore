@@ -20,7 +20,7 @@ func (h *FriendHandler) RejectRequest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//2.Take user id from the param
-	friendIDStr := chi.URLParam(r, "friendID")
+	friendIDStr := chi.URLParam(r, "requestID")
 	friendID, err := uuid.Parse(friendIDStr)
 	if err != nil {
 		http.Error(w, "Invalid id", http.StatusBadRequest)

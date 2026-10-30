@@ -8,7 +8,7 @@ import (
 
 type Conversation struct {
 	ID string `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()" json:"id"`
-	// "dm" | "group" | "crew_link"(optional) optional display name (for group DMs); for 1:1 can be null
+	// "dm" | "group" | "channel_link"(optional) optional display name (for group DMs); for 1:1 can be null
 
 	Type          string    `gorm:"size:30;not null;default:'dm'" json:"type"`
 	Title         *string   `gorm:"size:255" json:"title,omitempty"`

@@ -23,8 +23,8 @@ type Client struct {
 	conn *websocket.Conn
 	send chan []byte
 
-	userID uuid.UUID
-	crews  map[uuid.UUID]bool
+	userID   uuid.UUID
+	channels map[uuid.UUID]bool
 
 	hub *Hub
 
@@ -51,7 +51,7 @@ func NewClient(
 		conn:            conn,
 		send:            make(chan []byte, 256),
 		userID:          userID,
-		crews:           make(map[uuid.UUID]bool),
+		channels:        make(map[uuid.UUID]bool),
 		hub:             hub,
 		ctx:             ctx,
 		cancel:          cancel,
@@ -96,10 +96,10 @@ func (c *Client) readPump() {
 		}
 
 		switch wsMsg.Type {
-		case "join_crew":
-			c.hub.joinCrew(c, wsMsg.CrewID)
-		case "leave_crew":
-			c.hub.leaveCrew(c, wsMsg.CrewID)
+		case "join_channel":
+			c.hub.joinChannel(c, wsMsg.ChannelID)
+		case "leave_channel":
+			c.hub.leaveChannel(c, wsMsg.ChannelID)
 		case "dm":
 			if !c.messageLimiter.Allow() {
 				log.Printf(
@@ -109,7 +109,7 @@ func (c *Client) readPump() {
 				continue
 			}
 			c.handleDmMessage(wsMsg)
-		case "crew_message":
+		case "channel_message":
 			if !c.messageLimiter.Allow() {
 				log.Printf(
 					"rate limit type=%s user=%s ip=%s",
@@ -119,7 +119,7 @@ func (c *Client) readPump() {
 				)
 				continue
 			}
-			c.handleCrewMessage(wsMsg)
+			c.handleChannelMessage(wsMsg)
 		case "typing_start":
 
 			if !c.typingLimiter.Allow() {

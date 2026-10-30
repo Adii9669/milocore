@@ -19,17 +19,19 @@ type App struct {
 
 	//Repositories for the app
 	UserRepo    repository.UserRepository
-	CrewRepo    repository.CrewRepository
+	ChannelRepo repository.ChannelRepository
 	MessageRepo repository.MessageRepository
+	PlanRepo    repository.PlanRepository
 	FriendRepo  repository.FriendRepository
 	ConvRepo    repository.Conversation
 	Config      *config.AppConfig
 
 	// Services
-	CrewService        services.CrewService
+	ChannelService     services.ChannelService
 	FriendService      services.FriendService
 	MessageService     services.MessageService
 	ChatHistoryService services.ChatHistroyService
+	PlanService        services.PlanService
 	EmailService       *services.EmailService
 	AuthService        *services.AuthService
 
@@ -44,8 +46,9 @@ func NewApp(
 	cfg *config.AppConfig,
 ) *App {
 	userRepo := repository.NewUserRepository(db)
-	crewRepo := repository.NewCrewRepository(db)
+	channelRepo := repository.NewChannelRepository(db)
 	messageRepo := repository.NewMessageRepository(db)
+	planRepo := repository.NewPlanRepository(db)
 	friendRepo := repository.NewFriendRepository(db)
 	convRepo := repository.NewConversation(db)
 	sessionRepo := repository.NewSessionRepository(db)
@@ -66,7 +69,7 @@ func NewApp(
 		if err != nil {
 			panic("failed to initialize MinIO: " + err.Error())
 		}
-		if err := minioStorage.CheckConnection(context.Background()); err != nil {
+		if err := minioStorage.EnsureBucket(context.Background()); err != nil {
 			panic("MinIO connection failed: " + err.Error())
 		}
 		fileStorage = minioStorage
@@ -78,16 +81,18 @@ func NewApp(
 
 		//repository
 		UserRepo:    userRepo,
-		CrewRepo:    crewRepo,
+		ChannelRepo: channelRepo,
 		MessageRepo: messageRepo,
+		PlanRepo:    planRepo,
 		FriendRepo:  friendRepo,
 		ConvRepo:    convRepo,
 
 		//services
 		ChatHistoryService: services.NewChatHistoryService(messageRepo),
-		MessageService:     services.NewMessageService(messageRepo, userRepo, crewRepo),
+		PlanService:        services.NewPlanService(planRepo, channelRepo, friendRepo, userRepo, hub),
+		MessageService:     services.NewMessageService(messageRepo, userRepo, channelRepo),
 		FriendService:      services.NewFriendService(userRepo, friendRepo),
-		CrewService:        services.NewCrewService(db, crewRepo, userRepo),
+		ChannelService:     services.NewChannelService(db, channelRepo, userRepo),
 		EmailService:       emailService,
 		AuthService:        authService,
 

@@ -15,6 +15,7 @@ var (
 	ErrAlreadyFriends  = errors.New("already friends")
 	ErrInvalidRequest  = errors.New("invalid friend request state")
 	ErrCannotAcceptOwn = errors.New("cannot accept your own request")
+	ErrFriendNotFound  = errors.New("friendship not found")
 )
 
 const (
@@ -90,6 +91,13 @@ func (s *friendService) SendFriendRequest(
 	//check if user and targetID not same
 	if senderID == targetID {
 		return errors.New("cannot send request to your self")
+	}
+	targetExists, err := s.userRepo.ExistByID(ctx, targetID)
+	if err != nil {
+		return err
+	}
+	if !targetExists {
+		return ErrFriendNotFound
 	}
 
 	low, high := normalizePair(senderID, targetID)
@@ -188,7 +196,10 @@ func (s *friendService) RemoveFriend(
 
 	friendship, err := s.frndRepo.GetRelation(ctx, low, high)
 	if err != nil {
-		return errors.New("friendship not found")
+		return err
+	}
+	if friendship == nil {
+		return ErrFriendNotFound
 	}
 
 	if friendship.Status != "accepted" {
@@ -261,18 +272,25 @@ func (s *friendService) RejectRequest(
 	userID uuid.UUID,
 ) error {
 
-	req, err := s.frndRepo.GetRelation(ctx, userID, requesterID)
+	if userID == requesterID {
+		return ErrInvalidRequest
+	}
+	low, high := normalizePair(userID, requesterID)
+	req, err := s.frndRepo.GetRelation(ctx, low, high)
 	if err != nil {
 		return err
+	}
+	if req == nil {
+		return ErrRequestNotFound
 	}
 
 	if req.Status != "pending" {
 		return errors.New("request not pending")
 	}
 
-	if req.RequestedBy == userID {
+	if req.RequestedBy == requesterID {
 		return errors.New("sender cannot reject")
 	}
 
-	return s.frndRepo.Delete(ctx, userID, requesterID)
+	return s.frndRepo.Delete(ctx, low, high)
 }

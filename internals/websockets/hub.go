@@ -13,11 +13,13 @@ type Hub struct {
 	register   chan *Client
 	unregister chan *Client
 
-	users map[uuid.UUID]map[*Client]bool //set of Clients connections
-	crews map[uuid.UUID]map[*Client]bool
+	users    map[uuid.UUID]map[*Client]bool //set of Clients connections
+	channels map[uuid.UUID]map[*Client]bool
 
 	broadcast chan []byte
 	route     chan events.MessageEvent
+	deletion  chan events.MessageDeletionEvent
+	planEvent chan events.PlanEvent
 	// route     chan *services.MessageResult
 
 	delivered chan string
@@ -32,15 +34,28 @@ func NewHub() *Hub {
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
 
-		users: make(map[uuid.UUID]map[*Client]bool),
-		crews: make(map[uuid.UUID]map[*Client]bool),
+		users:    make(map[uuid.UUID]map[*Client]bool),
+		channels: make(map[uuid.UUID]map[*Client]bool),
 
 		broadcast: make(chan []byte, 256),
 		route:     make(chan events.MessageEvent, 256),
+		deletion:  make(chan events.MessageDeletionEvent, 256),
+		planEvent: make(chan events.PlanEvent, 256),
 		delivered: make(chan string, 256),
 		read:      make(chan events.ReadEvent, 256),
 	}
 
+}
+
+// PublishMessage routes a message created outside the websocket handler, such as
+// an uploaded attachment, through the same live delivery path.
+func (h *Hub) PublishMessage(message events.MessageEvent)               { h.route <- message }
+func (h *Hub) PublishMessageDeletion(event events.MessageDeletionEvent) { h.deletion <- event }
+func (h *Hub) PublishPlanEvent(event events.PlanEvent) {
+	if h == nil || h.planEvent == nil {
+		return
+	}
+	h.planEvent <- event
 }
 
 func (h *Hub) Run() {
@@ -71,6 +86,10 @@ func (h *Hub) Run() {
 			//case to handle the mssages
 		case msg := <-h.route:
 			h.handleRouteMessage(msg)
+		case event := <-h.deletion:
+			h.handleRouteMessageDeletion(event)
+		case event := <-h.planEvent:
+			h.handleRoutePlanEvent(event)
 
 			//case to handle the broadcast
 		case data := <-h.broadcast:
@@ -109,12 +128,12 @@ func (h *Hub) handleUnregister(client *Client) {
 		}
 	}
 
-	// Remove from all crews
-	for crewID := range client.crews {
-		if crewClients, ok := h.crews[crewID]; ok {
-			delete(crewClients, client)
-			if len(crewClients) == 0 {
-				delete(h.crews, crewID)
+	// Remove from all channels
+	for channelID := range client.channels {
+		if channelClients, ok := h.channels[channelID]; ok {
+			delete(channelClients, client)
+			if len(channelClients) == 0 {
+				delete(h.channels, channelID)
 			}
 		}
 	}

@@ -9,13 +9,13 @@ import (
 	"github.com/google/uuid"
 )
 
-// ------------------------------------------------------------------handle Crew Message
-func (c *Client) handleCrewMessage(msg WSMessage) {
+// ------------------------------------------------------------------handle Channel Message
+func (c *Client) handleChannelMessage(msg WSMessage) {
 
 	incoming := services.IncomingMessage{
-		Type:    "crew",
-		CrewID:  &msg.CrewID,
-		Content: msg.Content,
+		Type:      "channel",
+		ChannelID: &msg.ChannelID,
+		Content:   msg.Content,
 	}
 
 	ctx, cancel := context.WithTimeout(c.ctx, 5*time.Second)
