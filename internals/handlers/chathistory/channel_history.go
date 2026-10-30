@@ -18,7 +18,7 @@ type PaginatedMessageResponse struct {
 	HasMore    bool                  `json:"hasMore"`
 }
 
-func (h *Handler) GetCrewHistory(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) GetChannelHistory(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 	userID, err := middleware.GetUserIDFromContext(ctx)
@@ -27,10 +27,10 @@ func (h *Handler) GetCrewHistory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	crewIDstr := chi.URLParam(r, "crewId")
-	crewID, err := uuid.Parse(crewIDstr)
+	channelIDstr := chi.URLParam(r, "channelId")
+	channelID, err := uuid.Parse(channelIDstr)
 	if err != nil {
-		http.Error(w, "Invalid crew ID", http.StatusBadRequest)
+		http.Error(w, "Invalid channel ID", http.StatusBadRequest)
 		return
 	}
 
@@ -49,7 +49,7 @@ func (h *Handler) GetCrewHistory(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	messages, err := h.service.CrewHistory(ctx, crewID, userID, limit, cursor)
+	messages, err := h.service.ChannelHistory(ctx, channelID, userID, limit, cursor)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return

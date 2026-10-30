@@ -6,15 +6,15 @@ import (
 	"github.com/google/uuid"
 )
 
-type CrewRequest struct {
+type ChannelRequest struct {
 	Name string `json:"name"`
 	Role string `json:"role"`
 }
 
-type UpdateCrewMember struct {
+type UpdateChannelMember struct {
 	MutedTil *time.Time `json:"muted_til"`
 }
 
 type GetMembers struct {
-	CrewID uuid.UUID `json:"crewid"`
+	ChannelID uuid.UUID `json:"channelId"`
 }

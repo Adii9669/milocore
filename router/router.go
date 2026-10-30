@@ -3,12 +3,15 @@ package router
 import (
 	"chat-server/internals/app"
 	"chat-server/internals/handlers/auth"
+	"chat-server/internals/handlers/channels"
 	"chat-server/internals/handlers/chathistory"
-	"chat-server/internals/handlers/crews"
 	"chat-server/internals/handlers/files"
 	"chat-server/internals/handlers/friends"
+	"chat-server/internals/handlers/messages"
+	"chat-server/internals/handlers/plans"
 	"chat-server/internals/middleware"
 	"chat-server/internals/websockets"
+	"encoding/json"
 	"log"
 
 	// go libraries
@@ -44,6 +47,17 @@ func SetUpRouter(app *app.App) http.Handler {
 		httpSwagger.URL("/swagger/doc.json"),
 	))
 
+	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if err := app.DB.WithContext(r.Context()).Exec("SELECT 1").Error; err != nil {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_ = json.NewEncoder(w).Encode(map[string]string{"status": "unavailable"})
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+	})
+
 	r.Route("/auth", func(r chi.Router) {
 		r.Post("/register", auth.RegisterHandler(app.AuthService))
 		r.Post("/login", auth.LoginHandler(app.AuthService))
@@ -59,31 +73,33 @@ func SetUpRouter(app *app.App) http.Handler {
 	--------------------------------------------------------- */
 
 	// handlers for creating the instace for the repository for using
-	crewHandler := crews.NewCrewHandler(app.CrewService)
+	channelHandler := channels.NewChannelHandler(app.ChannelService)
 	authHandler := auth.NewAuthHandler(app.UserRepo)
 	frndHandler := friends.NewFriendHandler(app.FriendService)
 	chathistoryHandler := chathistory.NewHandler(app.ChatHistoryService)
-	fileHandler := files.NewFileHandler(app.FileStorage)
+	fileHandler := files.NewFileHandler(app.FileStorage, app.MessageService, app.Hub)
+	messageHandler := messages.NewHandler(app.MessageService, app.FileStorage, app.Hub)
+	planHandler := plans.NewHandler(app.PlanService)
 
 	//Protected Routes
 	r.Route("/api", func(r chi.Router) {
 		r.Use(middleware.AuthMiddleware)
 
-		r.Route("/crews", func(r chi.Router) {
-			r.Post("/", crewHandler.CreateCrew)
-			r.Get("/", crewHandler.Getcrew)
+		r.Route("/channels", func(r chi.Router) {
+			r.Post("/", channelHandler.CreateChannel)
+			r.Get("/", channelHandler.GetChannels)
 
-			r.Route("/{crewID}", func(r chi.Router) {
-				r.Delete("/", crewHandler.DeleteCrew)
-				r.Put("/", crewHandler.RenameCrew)
+			r.Route("/{channelID}", func(r chi.Router) {
+				r.Delete("/", channelHandler.DeleteChannel)
+				r.Put("/", channelHandler.RenameChannel)
 
 				r.Route("/members", func(r chi.Router) {
-					r.Post("/", crewHandler.AddMember)
-					r.Get("/", crewHandler.GetMembers)
+					r.Get("/", channelHandler.GetMembers)
+					r.Post("/{userID}", channelHandler.AddMember)
 
 					r.Route("/{userID}", func(r chi.Router) {
-						r.Put("/role", crewHandler.UpdateMember)
-						r.Delete("/", crewHandler.RemoveMember)
+						r.Put("/role", channelHandler.UpdateMember)
+						r.Delete("/", channelHandler.RemoveMember)
 					})
 
 				})
@@ -110,7 +126,20 @@ func SetUpRouter(app *app.App) http.Handler {
 		r.Delete("/friends/{friendID}", frndHandler.RemoveFriend)
 
 		// Chat
-		r.Get("/chats/crew/{crewId}", chathistoryHandler.GetCrewHistory)
+		r.Delete("/messages/{messageID}", messageHandler.Delete)
+		r.Post("/chats/channel/{channelId}/plans", planHandler.CreateChannelPlan)
+		r.Get("/chats/channel/{channelId}/plans", planHandler.ListChannelPlans)
+		r.Post("/chats/dm/{userId}/plans", planHandler.CreateDMPlan)
+		r.Get("/chats/dm/{userId}/plans", planHandler.ListDMPlans)
+		r.Get("/plans/{planId}", planHandler.GetPlan)
+		r.Get("/plans/{planId}/poll", planHandler.GetPoll)
+		r.Post("/plans/{planId}/poll", planHandler.CreatePoll)
+		r.Put("/plans/{planId}/poll/votes", planHandler.SetPollVotes)
+		r.Put("/plans/{planId}", planHandler.UpdatePlan)
+		r.Put("/plans/{planId}/status", planHandler.UpdatePlanStatus)
+		r.Put("/plans/{planId}/response", planHandler.SetResponse)
+		r.Get("/plans/{planId}/participants", planHandler.GetParticipants)
+		r.Get("/chats/channel/{channelId}", chathistoryHandler.GetChannelHistory)
 		r.Get("/chats/dm/{userId}", chathistoryHandler.GetDmHistory)
 
 		// r.Poat
@@ -124,6 +153,8 @@ func SetUpRouter(app *app.App) http.Handler {
 
 		//files
 		r.Post("/files/upload", fileHandler.Upload)
+		r.Get("/files/{messageID}/download", fileHandler.Download)
+		r.Get("/files/{messageID}/preview", fileHandler.Preview)
 		// r.Delete("/files/{objectName}", fileHandler.Delete)
 	})
 

@@ -20,20 +20,21 @@ type Message struct {
 	ID   uuid.UUID   `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()"`
 	Type MessageType `gorm:"type:varchar(20);not null;default:'text';index"`
 
-	Sender     User       `gorm:"foreignKey:SenderID;references:ID"`
+	Sender     User       `gorm:"foreignKey:SenderID;references:ID;constraint:OnDelete:CASCADE"`
 	ReceiverID *uuid.UUID `gorm:"type:uuid;index:idx_receiver_created,priority:1"`
 	SenderID   uuid.UUID  `gorm:"type:uuid;not null;idx_sender_created"`
-	CrewID     *uuid.UUID `gorm:"type:uuid;index:idx_crew_created,priority:1"`
+	ChannelID  *uuid.UUID `gorm:"type:uuid;index:idx_channel_created,priority:1"`
 
 	Content   *string `gorm:"type:text"`
 	Delivered bool    `gorm:"default:false;index"`
 	Read      bool    `gorm:"default:false;index"`
 
-	CreatedAt time.Time `gorm:"index:idx_crew_created,priority:2;index:idx_receiver_created,priority:2"`
+	CreatedAt time.Time `gorm:"index:idx_channel_created,priority:2;index:idx_receiver_created,priority:2"`
 	UpdatedAt time.Time
 
-	FileURL  *string
-	FileName *string
-	FileSize *int64
-	MimeType *string
+	FileURL   *string
+	ObjectKey *string `gorm:"type:text"`
+	FileName  *string
+	FileSize  *int64
+	MimeType  *string
 }

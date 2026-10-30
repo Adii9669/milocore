@@ -1,4 +1,4 @@
-package crews
+package channels
 
 import (
 	"chat-server/internals/middleware"
@@ -9,13 +9,13 @@ import (
 	"net/http"
 )
 
-func (h *CrewHandler) CreateCrew(w http.ResponseWriter, r *http.Request) {
+func (h *ChannelHandler) CreateChannel(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	//1.get the authentication id
 	ctx := r.Context()
 
 	//2. Decode the body of the request
-	var req requests.CrewRequest
+	var req requests.ChannelRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid Body Request", http.StatusBadRequest)
 		return
@@ -29,10 +29,10 @@ func (h *CrewHandler) CreateCrew(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//call the service
-	response, err := h.crewService.CreateCrew(ctx, ownerID, req.Name)
+	response, err := h.channelService.CreateChannel(ctx, ownerID, req.Name)
 	if err != nil {
-		log.Println("CreateCrew error:", err)
-		http.Error(w, "Failed To Create Crew", http.StatusInternalServerError)
+		log.Println("CreateChannel error:", err)
+		http.Error(w, "Failed To Create Channel", http.StatusInternalServerError)
 		return
 	}
 

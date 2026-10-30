@@ -25,9 +25,9 @@ func (h *Hub) handleRouteMessage(msg events.MessageEvent) {
 	//Debug
 	// log.Println(string(payload))
 
-	//here we handle the routing based on crewID/userID
-	if msg.CrewID != nil {
-		h.routeCrewMessage(payload, msg)
+	//here we handle the routing based on channelID/userID
+	if msg.ChannelID != nil {
+		h.routeChannelMessage(payload, msg)
 		return
 	}
 	if msg.ReceiverID != nil {
@@ -54,7 +54,8 @@ func seralizeMessageEvent(msg events.MessageEvent) ([]byte, error) {
 				Name: msg.SenderName,
 			},
 			ReceiverID: msg.ReceiverID,
-			CrewID:     msg.CrewID,
+			ChannelID:  msg.ChannelID,
+			FileURL:    msg.FileURL, FilePreviewURL: msg.FilePreviewURL, FileName: msg.FileName, FileSize: msg.FileSize, MimeType: msg.MimeType,
 		},
 	}
 
@@ -74,27 +75,45 @@ func (h *Hub) handleBroadcast(data []byte) {
 
 // ----------------------------------------------------------- route dm messages
 func (h *Hub) routeDMMessage(payload []byte, msg events.MessageEvent) {
-
-	//checking the receiver exist or not in the connected client list (array)
 	if msg.ReceiverID == nil {
-		log.Printf("reciever id nil")
+		log.Printf("receiver id nil")
 		return
 	}
-	receiverUUID := *msg.ReceiverID
 
-	receiverClients, ok := h.users[receiverUUID]
+	// Send the persisted event to both participants. The sender needs the
+	// database ID to replace its optimistic client-side message ID.
+	recipients := map[uuid.UUID]struct{}{
+		msg.SenderID:    {},
+		*msg.ReceiverID: {},
+	}
+	for userID := range recipients {
+		for client := range h.users[userID] {
+			select {
+			case client.send <- payload:
+			default:
+				h.unregister <- client
+			}
+		}
+	}
+}
+
+// -------------------------------------------------------------- route channel messages
+func (h *Hub) routeChannelMessage(payload []byte, msg events.MessageEvent) {
+
+	if msg.ChannelID == nil {
+		return
+	}
+	// find all connections in that channel
+	channelID := *msg.ChannelID
+	channelClients, ok := h.channels[channelID]
 	if !ok {
 		return
 	}
 
-	log.Printf("Receiver has %d connections", len(receiverClients))
-
-	//send message to the client (receiverClients)
-	for client := range receiverClients {
-		//using select to avoid the block's
+	// send message to each connection
+	for client := range channelClients {
 		select {
 		case client.send <- payload:
-			//if client not active or stuck remove it from the map
 		default:
 			h.unregister <- client
 		}
@@ -102,26 +121,66 @@ func (h *Hub) routeDMMessage(payload []byte, msg events.MessageEvent) {
 
 }
 
-// -------------------------------------------------------------- route crew messages
-func (h *Hub) routeCrewMessage(payload []byte, msg events.MessageEvent) {
-
-	if msg.CrewID == nil {
+func (h *Hub) handleRouteMessageDeletion(event events.MessageDeletionEvent) {
+	payload, err := json.Marshal(WSEvent{Event: string(MessageDeleted), Data: WSMessageDeletionPayload{
+		MessageID: event.MessageID.String(), SenderID: event.SenderID.String(), ReceiverID: event.ReceiverID, ChannelID: event.ChannelID,
+	}})
+	if err != nil {
+		log.Print("ws marshal failed error:", err)
 		return
 	}
-	// find all connections in that crew
-	crewID := *msg.CrewID
-	crewClients, ok := h.crews[crewID]
-	if !ok {
+	if event.ChannelID != nil {
+		for client := range h.channels[*event.ChannelID] {
+			select {
+			case client.send <- payload:
+			default:
+				h.unregister <- client
+			}
+		}
 		return
 	}
-
-	// send message to each connection
-	for client := range crewClients {
-		select {
-		case client.send <- payload:
-		default:
-			h.unregister <- client
+	recipients := map[uuid.UUID]bool{event.SenderID: true}
+	if event.ReceiverID != nil {
+		recipients[*event.ReceiverID] = true
+	}
+	for userID := range recipients {
+		for client := range h.users[userID] {
+			select {
+			case client.send <- payload:
+			default:
+				h.unregister <- client
+			}
 		}
 	}
+}
 
+func (h *Hub) handleRoutePlanEvent(event events.PlanEvent) {
+	if event.Event == "" || event.EventID == uuid.Nil || event.PlanID == uuid.Nil || len(event.Recipients) == 0 {
+		return
+	}
+	payload, err := json.Marshal(WSEvent{Event: event.Event, Data: PlanEventData{
+		EventID: event.EventID.String(), PlanID: event.PlanID.String(), ChannelID: event.ChannelID,
+		DMUserLowID: event.DMUserLowID, DMUserHighID: event.DMUserHighID,
+	}})
+	if err != nil {
+		log.Print("ws plan event marshal failed: ", err)
+		return
+	}
+	seen := make(map[uuid.UUID]struct{}, len(event.Recipients))
+	for _, userID := range event.Recipients {
+		if userID == uuid.Nil {
+			continue
+		}
+		if _, exists := seen[userID]; exists {
+			continue
+		}
+		seen[userID] = struct{}{}
+		for client := range h.users[userID] {
+			select {
+			case client.send <- payload:
+			default:
+				h.unregister <- client
+			}
+		}
+	}
 }

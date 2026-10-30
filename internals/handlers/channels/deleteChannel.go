@@ -1,4 +1,4 @@
-package crews
+package channels
 
 import (
 	"chat-server/internals/middleware"
@@ -11,7 +11,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func (h *CrewHandler) DeleteCrew(w http.ResponseWriter, r *http.Request) {
+func (h *ChannelHandler) DeleteChannel(w http.ResponseWriter, r *http.Request) {
 
 	defer r.Body.Close()
 	ctx := r.Context()
@@ -23,24 +23,24 @@ func (h *CrewHandler) DeleteCrew(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 3. Extract crew ID using Gorilla Mux
-	crewIDStr := chi.URLParam(r, "crewID")
-	crewID, err := uuid.Parse(crewIDStr)
+	// 3. Extract channel ID using Gorilla Mux
+	channelIDStr := chi.URLParam(r, "channelID")
+	channelID, err := uuid.Parse(channelIDStr)
 	if err != nil {
-		http.Error(w, "Invalid Crew ID", http.StatusBadRequest)
+		http.Error(w, "Invalid Channel ID", http.StatusBadRequest)
 		return
 	}
 
-	// 4. Delete the crew
-	err = h.crewService.DeleteCrew(ctx, crewID, userID)
+	// 4. Delete the channel
+	err = h.channelService.DeleteChannel(ctx, channelID, userID)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			http.Error(w, "Crew not found", http.StatusForbidden)
+			http.Error(w, "Channel not found", http.StatusForbidden)
 			return
 		}
 
-		fmt.Printf("Error while deleting....", err)
-		http.Error(w, "Failed to delete crew", http.StatusInternalServerError)
+		fmt.Printf("Error while deleting: %v\n", err)
+		http.Error(w, "Failed to delete channel", http.StatusInternalServerError)
 		return
 	}
 

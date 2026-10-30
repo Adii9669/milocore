@@ -1,6 +1,7 @@
 package services
 
 import (
+	"chat-server/internals/db/models"
 	"chat-server/internals/repository"
 	"chat-server/internals/transport/dto"
 	"chat-server/internals/transport/mapper"
@@ -12,9 +13,9 @@ import (
 )
 
 type ChatHistroyService interface {
-	CrewHistory(
+	ChannelHistory(
 		ctx context.Context,
-		crewID uuid.UUID,
+		channelID uuid.UUID,
 		currentUser uuid.UUID,
 		limit int,
 		cursor *time.Time,
@@ -39,9 +40,9 @@ func NewChatHistoryService(repo repository.MessageRepository) ChatHistroyService
 	}
 }
 
-func (s *chathistroyservice) CrewHistory(
+func (s *chathistroyservice) ChannelHistory(
 	ctx context.Context,
-	crewID uuid.UUID,
+	channelID uuid.UUID,
 	currentUser uuid.UUID,
 	limit int,
 	cursor *time.Time,
@@ -50,16 +51,21 @@ func (s *chathistroyservice) CrewHistory(
 	if limit <= 0 || limit >= 100 {
 		limit = 50
 	}
-	messages, err := s.messageRepo.GetCrewMessageHistory(
-		ctx, crewID, limit, cursor)
+	var messages []models.Message
+	var err error
+	if deletionRepo, ok := s.messageRepo.(repository.MessageDeletionRepository); ok {
+		messages, err = deletionRepo.GetChannelMessageHistoryForUser(ctx, channelID, currentUser, limit, cursor)
+	} else {
+		messages, err = s.messageRepo.GetChannelMessageHistory(ctx, channelID, limit, cursor)
+	}
 	if err != nil {
-		return nil, errors.New("Failed to get crew Histroy")
+		return nil, errors.New("Failed to get channel Histroy")
 	}
 
 	var responses []dto.MessageResponse
 
 	for _, msg := range messages {
-		resp := mapper.ToCrewMessageResponse(&msg, currentUser)
+		resp := mapper.ToChannelMessageResponse(&msg, currentUser)
 		responses = append(responses, resp)
 	}
 	return responses, nil
@@ -85,8 +91,13 @@ func (s *chathistroyservice) DmHistory(
 		limit = 50
 	}
 
-	messages, err := s.messageRepo.GetDmMessageHistory(
-		ctx, userA, userB, limit, cursor)
+	var messages []models.Message
+	var err error
+	if deletionRepo, ok := s.messageRepo.(repository.MessageDeletionRepository); ok {
+		messages, err = deletionRepo.GetDmMessageHistoryForUser(ctx, userA, userB, userA, limit, cursor)
+	} else {
+		messages, err = s.messageRepo.GetDmMessageHistory(ctx, userA, userB, limit, cursor)
+	}
 	if err != nil {
 		return nil, errors.New("Failed to get Histroy")
 	}

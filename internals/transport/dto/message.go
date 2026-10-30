@@ -12,9 +12,14 @@ type MessageResponse struct {
 	//for dm
 	IsMine *bool `json:"isMine,omitempty"`
 
-	//for crews
-	Sender *SenderDTO `json:"sender,omitempty"`
-	CrewID *string    `json:"crewId,omitempty"`
+	//for channels
+	Sender         *SenderDTO `json:"sender,omitempty"`
+	ChannelID      *string    `json:"channelId,omitempty"`
+	FileURL        *string    `json:"fileUrl,omitempty"`
+	FilePreviewURL *string    `json:"filePreviewUrl,omitempty"`
+	FileName       *string    `json:"fileName,omitempty"`
+	FileSize       *int64     `json:"fileSize,omitempty"`
+	MimeType       *string    `json:"mimeType,omitempty"`
 }
 
 type SenderDTO struct {

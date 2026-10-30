@@ -29,6 +29,7 @@ func (h *FriendHandler) GetFriends(w http.ResponseWriter, r *http.Request) {
 	friends, err := h.friendService.GetFriends(ctx, userID)
 	if err != nil {
 		http.Error(w, "Failed to retrive Friends", http.StatusInternalServerError)
+		return
 	}
 
 	if friends == nil {

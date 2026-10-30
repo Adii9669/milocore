@@ -60,6 +60,14 @@ func (r *userRepository) FindBYName(ctx context.Context, name string) (*models.U
 	return &user, err
 }
 
+func (r *userRepository) SearchByUsername(ctx context.Context, query string, excludeID uuid.UUID, limit int) ([]models.User, error) {
+	var users []models.User
+	err := r.db.WithContext(ctx).
+		Where("LOWER(name) LIKE LOWER(?) AND id <> ?", "%"+query+"%", excludeID).
+		Order("name ASC").Limit(limit).Find(&users).Error
+	return users, err
+}
+
 // FindByEmail retrieves a user by their email from the database.
 func (r *userRepository) FindByEmail(ctx context.Context, email string) (*models.User, error) {
 	var user models.User

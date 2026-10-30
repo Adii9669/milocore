@@ -10,5 +10,5 @@ type MessageResult struct {
 	Response   *dto.MessageResponse
 	SenderID   string
 	ReceiverID *uuid.UUID
-	CrewID     *uuid.UUID
+	ChannelID  *uuid.UUID
 }

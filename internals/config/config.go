@@ -52,6 +52,7 @@ type AppConfig struct {
 		Username string `env:"MINIO_ROOT_USER"`
 		Password string `env:"MINIO_ROOT_PASSWORD"`
 		Bucket   string `env:"MINIO_BUCKET"`
+		Secure   bool   `env:"MINIO_SECURE" envDefault:"false"`
 	}
 }
 

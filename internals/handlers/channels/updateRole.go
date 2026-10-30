@@ -1,4 +1,4 @@
-package crews
+package channels
 
 import (
 	"chat-server/internals/db/models"
@@ -14,7 +14,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func (h *CrewHandler) UpdateMember(w http.ResponseWriter, r *http.Request) {
+func (h *ChannelHandler) UpdateMember(w http.ResponseWriter, r *http.Request) {
 
 	defer r.Body.Close()
 	ctx := r.Context()
@@ -26,11 +26,11 @@ func (h *CrewHandler) UpdateMember(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//2.Parse crewID from URL
-	crewIDParam := chi.URLParam(r, "crewID")
-	crewID, err := uuid.Parse(crewIDParam)
+	//2.Parse channelID from URL
+	channelIDParam := chi.URLParam(r, "channelID")
+	channelID, err := uuid.Parse(channelIDParam)
 	if err != nil {
-		http.Error(w, "Invalid crew ID", http.StatusBadRequest)
+		http.Error(w, "Invalid channel ID", http.StatusBadRequest)
 		return
 	}
 
@@ -43,7 +43,7 @@ func (h *CrewHandler) UpdateMember(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 4.check body for more info
-	var req requests.CrewRequest
+	var req requests.ChannelRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid Request", http.StatusBadRequest)
 		return
@@ -53,10 +53,10 @@ func (h *CrewHandler) UpdateMember(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newRole := models.CrewRole(req.Role)
+	newRole := models.ChannelRole(req.Role)
 
 	//call the service
-	err = h.crewService.UpdateMemberRole(ctx, crewID, userID, memberID, newRole)
+	err = h.channelService.UpdateMemberRole(ctx, channelID, userID, memberID, newRole)
 	if err != nil {
 		log.Println("AddMember error:", err)
 		http.Error(w, err.Error(), http.StatusBadRequest)

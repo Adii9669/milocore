@@ -23,10 +23,10 @@ type User struct {
 	CreatedAt    time.Time
 
 	//relation
-	Accounts   []Account `gorm:"foreignKey:UserID"`
-	Sessions   []Session `gorm:"foreignKey:UserID"`
-	OwnedCrews []Crew    `gorm:"foreignKey:OwnerID"`
-	Crews      []Crew    `gorm:"many2many:crew_members;constraint:OnDelete:CASCADE;"`
+	Accounts      []Account `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE"`
+	Sessions      []Session `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE"`
+	OwnedChannels []Channel `gorm:"foreignKey:OwnerID;constraint:OnDelete:CASCADE"`
+	Channels      []Channel `gorm:"many2many:channel_members;constraint:OnDelete:CASCADE;"`
 	// Messages   []Message `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE;"`
 }
 

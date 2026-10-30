@@ -3,8 +3,10 @@ package storage
 import (
 	"chat-server/internals/config"
 	"context"
-	"fmt"
 	"io"
+	"mime"
+	"net/url"
+	"time"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
@@ -43,7 +45,7 @@ func NewMinioStorage(cfg config.AppConfig) (*MinioStorage, error) {
 				cfg.MinIO.Password,
 				"",
 			),
-			Secure: false,
+			Secure: cfg.MinIO.Secure,
 		},
 	)
 	if err != nil {
@@ -56,16 +58,36 @@ func NewMinioStorage(cfg config.AppConfig) (*MinioStorage, error) {
 	}, nil
 }
 
-func (s *MinioStorage) CheckConnection(ctx context.Context) error {
-
+func (s *MinioStorage) EnsureBucket(ctx context.Context) error {
 	exists, err := s.Client.BucketExists(ctx, s.Bucket)
 	if err != nil {
 		return err
 	}
-	if !exists {
-		return fmt.Errorf("bucket %q dose not exists", s.Bucket)
+	if exists {
+		return nil
 	}
-	return nil
+	return s.Client.MakeBucket(ctx, s.Bucket, minio.MakeBucketOptions{})
+}
+
+func (s *MinioStorage) CheckConnection(ctx context.Context) error {
+	return s.EnsureBucket(ctx)
+}
+
+func (s *MinioStorage) DeleteObject(ctx context.Context, objectName string) error {
+	return s.Delete(ctx, s.Bucket, objectName)
+}
+
+func (s *MinioStorage) PresignedGetObject(ctx context.Context, objectName, filename, disposition string, expiry time.Duration) (string, error) {
+	headerValue := mime.FormatMediaType(disposition, map[string]string{"filename": filename})
+	if headerValue == "" {
+		headerValue = disposition
+	}
+	params := url.Values{"response-content-disposition": []string{headerValue}}
+	url, err := s.Client.PresignedGetObject(ctx, s.Bucket, objectName, expiry, params)
+	if err != nil {
+		return "", err
+	}
+	return url.String(), nil
 }
 
 // --For Deletion

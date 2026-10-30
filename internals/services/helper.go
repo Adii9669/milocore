@@ -9,12 +9,12 @@ import (
 )
 
 // Helper Function
-func (s *crewService) getMembership(
+func (s *channelService) getMembership(
 	ctx context.Context,
-	crewID, userID uuid.UUID,
-) (*models.CrewMember, error) {
+	channelID, userID uuid.UUID,
+) (*models.ChannelMember, error) {
 
-	member, err := s.crewRepo.FindMember(ctx, crewID, userID)
+	member, err := s.channelRepo.FindMember(ctx, channelID, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -26,13 +26,13 @@ func (s *crewService) getMembership(
 	return member, nil
 }
 
-func (s *crewService) requireRole(
+func (s *channelService) requireRole(
 	ctx context.Context,
-	crewID, userID uuid.UUID,
-	allowed ...models.CrewRole,
-) (*models.CrewMember, error) {
+	channelID, userID uuid.UUID,
+	allowed ...models.ChannelRole,
+) (*models.ChannelMember, error) {
 
-	member, err := s.getMembership(ctx, crewID, userID)
+	member, err := s.getMembership(ctx, channelID, userID)
 	if err != nil {
 		return nil, err
 	}

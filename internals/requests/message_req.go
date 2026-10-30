@@ -14,7 +14,7 @@ type IncomingEnvelope struct {
 
 // Payload for message action
 type IncomingPayloadMessage struct {
-	Type        string  `json:"type"` // "dm" or "crew" (we handle "dm" now)
+	Type        string  `json:"type"` // "dm" or "channel" (we handle "dm" now)
 	ToUserID    *string `json:"to_user_id,omitempty"`
 	Content     string  `json:"content"`
 	ClientNonce *string `json:"client_nonce,omitempty"`
@@ -25,7 +25,7 @@ type MessageResponse struct {
 	SenderID   string    `json:"SenderID"`
 	SenderName string    `json:"SenderName"` // Add this for frontend
 	ReceiverID *string   `json:"ReceiverID,omitempty"`
-	CrewID     *string   `json:"CrewID,omitempty"`
+	ChannelID  *string   `json:"ChannelID,omitempty"`
 	Content    *string   `json:"Content"`
 	CreatedAt  time.Time `json:"CreatedAt"`
 }
