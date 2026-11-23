@@ -1,11 +1,9 @@
 package auth
 
 import (
-	"chat-server/internals/middleware"
 	"chat-server/internals/services"
 	"chat-server/internals/utils"
 	"net/http"
-	"os"
 )
 
 // internals/handlers/auth/refresh.go
@@ -20,32 +18,17 @@ func RefreshHandler(authService *services.AuthService) http.HandlerFunc {
 			return
 		}
 
-		// 2. Get userID — refresh token is opaque so we need userID from
-		//    the expired access token (still parseable even if expired)
-		userID, err := middleware.GetUserIDFromContext(ctx)
+		// 2. Resolve the session from the refresh token itself. The access
+		//    token may already be expired/removed, so it cannot be used here.
+		accessToken, err := authService.Refresh(ctx, cookie.Value)
 		if err != nil {
-			writeJSONError(w, "Unauthorized", http.StatusUnauthorized)
+			writeJSONError(w, "Invalid refresh token", http.StatusUnauthorized)
 			return
 		}
 
-		// 3. Issue new access token
-		accessToken, err := authService.Refresh(ctx, userID, cookie.Value)
-		if err != nil {
-			writeJSONError(w, err.Error(), http.StatusUnauthorized)
-			return
-		}
-
-		// 4. Set new access token cookie only
-		isProduction := os.Getenv("APP_ENV") == "production"
-		http.SetCookie(w, &http.Cookie{
-			Name:     "access_token",
-			Value:    accessToken,
-			Path:     "/",
-			MaxAge:   int(utils.AccessTokenExpiry.Seconds()),
-			HttpOnly: true,
-			Secure:   isProduction,
-			SameSite: http.SameSiteLaxMode,
-		})
+		// 3. Set new access token cookie only. Reuse the shared helper so the
+		//    cookie keeps the right SameSite/Secure flags in production.
+		utils.SetAccessCookie(w, accessToken)
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)

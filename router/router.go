@@ -131,10 +131,12 @@ func SetUpRouter(app *app.App) http.Handler {
 		r.Get("/chats/channel/{channelId}/plans", planHandler.ListChannelPlans)
 		r.Post("/chats/dm/{userId}/plans", planHandler.CreateDMPlan)
 		r.Get("/chats/dm/{userId}/plans", planHandler.ListDMPlans)
+		r.Get("/plans/mine", planHandler.ListMyPlans)
 		r.Get("/plans/{planId}", planHandler.GetPlan)
 		r.Get("/plans/{planId}/poll", planHandler.GetPoll)
 		r.Post("/plans/{planId}/poll", planHandler.CreatePoll)
 		r.Put("/plans/{planId}/poll/votes", planHandler.SetPollVotes)
+		r.Delete("/plans/{planId}", planHandler.DeletePlan)
 		r.Put("/plans/{planId}", planHandler.UpdatePlan)
 		r.Put("/plans/{planId}/status", planHandler.UpdatePlanStatus)
 		r.Put("/plans/{planId}/response", planHandler.SetResponse)
@@ -176,6 +178,7 @@ func SetUpRouter(app *app.App) http.Handler {
 		}),
 		handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}),
 		handlers.AllowedHeaders([]string{"X-Requested-With", "content-type", "Content-Type", "Authorization"}),
+		handlers.ExposedHeaders([]string{"X-Token-Expired"}),
 		handlers.AllowCredentials(),
 	)(r)
 

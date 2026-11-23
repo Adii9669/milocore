@@ -17,8 +17,10 @@ import (
 type planRepoStub struct {
 	created         *models.Plan
 	plan            *models.Plan
+	deleted         uuid.UUID
 	channelPlans    []models.Plan
 	dmPlans         []models.Plan
+	createdPlans    []models.Plan
 	responses       map[uuid.UUID]models.PlanParticipant
 	poll            *models.PlanPoll
 	listedChannelID uuid.UUID
@@ -118,6 +120,14 @@ func (r *planRepoStub) Create(_ context.Context, plan *models.Plan) error {
 	r.created = &copy
 	return nil
 }
+func (r *planRepoStub) Delete(_ context.Context, id uuid.UUID) error {
+	if r.plan == nil || r.plan.ID != id {
+		return gorm.ErrRecordNotFound
+	}
+	r.deleted = id
+	r.plan = nil
+	return nil
+}
 func (r *planRepoStub) ListForChannel(_ context.Context, channelID uuid.UUID) ([]models.Plan, error) {
 	r.listedChannelID = channelID
 	return r.channelPlans, nil
@@ -125,6 +135,15 @@ func (r *planRepoStub) ListForChannel(_ context.Context, channelID uuid.UUID) ([
 func (r *planRepoStub) ListForDM(_ context.Context, userLowID, userHighID uuid.UUID) ([]models.Plan, error) {
 	r.listedLowID, r.listedHighID = userLowID, userHighID
 	return r.dmPlans, nil
+}
+func (r *planRepoStub) ListCreatedBy(_ context.Context, creatorID uuid.UUID) ([]models.Plan, error) {
+	result := make([]models.Plan, 0, len(r.createdPlans))
+	for _, plan := range r.createdPlans {
+		if plan.CreatorID == creatorID {
+			result = append(result, plan)
+		}
+	}
+	return result, nil
 }
 
 type planChannelRepoStub struct {
@@ -275,6 +294,60 @@ func TestListDMPlansRejectsNonFriend(t *testing.T) {
 	}
 }
 
+func TestListMyPlansOnlyReturnsOwnPlansInAccessibleConversations(t *testing.T) {
+	userID, channelID := uuid.New(), uuid.New()
+	plans := []models.Plan{
+		{ID: uuid.New(), CreatorID: userID, ChannelID: &channelID, Title: "Visible"},
+		{ID: uuid.New(), CreatorID: uuid.New(), ChannelID: &channelID, Title: "Not mine"},
+	}
+	repo := &planRepoStub{createdPlans: plans}
+	service := NewPlanService(repo, planChannelRepoStub{exists: true, member: true}, planFriendRepoStub{}, planUserRepoStub{})
+
+	got, err := service.ListMyPlans(context.Background(), userID)
+	if err != nil {
+		t.Fatalf("ListMyPlans returned error: %v", err)
+	}
+	if len(got) != 1 || got[0].Title != "Visible" {
+		t.Fatalf("expected only the user's accessible plan, got %#v", got)
+	}
+
+	service = NewPlanService(repo, planChannelRepoStub{exists: true, member: false}, planFriendRepoStub{}, planUserRepoStub{})
+	got, err = service.ListMyPlans(context.Background(), userID)
+	if err != nil {
+		t.Fatalf("ListMyPlans returned error for inaccessible conversation: %v", err)
+	}
+	if len(got) != 0 {
+		t.Fatalf("plans from inaccessible conversations should be omitted, got %#v", got)
+	}
+}
+
+func TestListMyPlansIncludesAcceptedDirectMessagePlans(t *testing.T) {
+	userID, friendID := uuid.New(), uuid.New()
+	lowID, highID := normalizePair(userID, friendID)
+	plan := models.Plan{
+		ID: uuid.New(), CreatorID: userID, DMUserLowID: &lowID, DMUserHighID: &highID, Title: "Coffee",
+	}
+	repo := &planRepoStub{createdPlans: []models.Plan{plan}}
+	service := NewPlanService(repo, planChannelRepoStub{}, planFriendRepoStub{relation: &models.Friend{Status: StatusAccepted}}, planUserRepoStub{exists: true})
+
+	got, err := service.ListMyPlans(context.Background(), userID)
+	if err != nil {
+		t.Fatalf("ListMyPlans returned error: %v", err)
+	}
+	if len(got) != 1 || got[0].ID != plan.ID {
+		t.Fatalf("expected accepted DM plan, got %#v", got)
+	}
+
+	service = NewPlanService(repo, planChannelRepoStub{}, planFriendRepoStub{}, planUserRepoStub{exists: true})
+	got, err = service.ListMyPlans(context.Background(), userID)
+	if err != nil {
+		t.Fatalf("ListMyPlans returned error for inaccessible DM: %v", err)
+	}
+	if len(got) != 0 {
+		t.Fatalf("plan from inaccessible DM should be omitted, got %#v", got)
+	}
+}
+
 func TestCreateDMPlanReturnsNotFoundForMissingUser(t *testing.T) {
 	service := NewPlanService(&planRepoStub{}, planChannelRepoStub{}, planFriendRepoStub{}, planUserRepoStub{exists: false})
 	_, err := service.CreateDMPlan(context.Background(), uuid.New(), uuid.New(), PlanInput{Title: "Plan", StartAt: time.Now().Add(time.Hour)})
@@ -339,6 +412,36 @@ func TestUpdatePlanRejectsNonCreatorStaleAndCancelledRequests(t *testing.T) {
 	_, service = newService(&models.Plan{ID: planID, CreatorID: userID, ChannelID: &channelID, UpdatedAt: updatedAt, Status: models.PlanStatusCancelled})
 	if _, err := service.UpdatePlan(context.Background(), userID, planID, input); !errors.Is(err, ErrPlanCancelled) {
 		t.Fatalf("expected cancelled plan error, got %v", err)
+	}
+}
+
+func TestDeletePlanRequiresCreatorAndPublishesDeletion(t *testing.T) {
+	creatorID, otherUserID := uuid.New(), uuid.New()
+	lowID, highID := normalizePair(creatorID, otherUserID)
+	planID := uuid.New()
+	plan := &models.Plan{
+		ID: planID, CreatorID: creatorID, DMUserLowID: &lowID, DMUserHighID: &highID,
+		Title: "Dinner", StartAt: time.Now().Add(time.Hour), Status: models.PlanStatusCancelled,
+	}
+	repo := &planRepoStub{plan: plan}
+	publisher := &planPublisherStub{}
+	service := NewPlanService(repo, planChannelRepoStub{}, planFriendRepoStub{relation: &models.Friend{Status: StatusAccepted}}, planUserRepoStub{exists: true}, publisher)
+
+	if err := service.DeletePlan(context.Background(), otherUserID, planID); !errors.Is(err, ErrPlanCreatorOnly) {
+		t.Fatalf("expected non-creator delete to be rejected, got %v", err)
+	}
+	if repo.deleted != uuid.Nil {
+		t.Fatal("non-creator delete reached the repository")
+	}
+
+	if err := service.DeletePlan(context.Background(), creatorID, planID); err != nil {
+		t.Fatalf("DeletePlan returned error: %v", err)
+	}
+	if repo.deleted != planID || repo.plan != nil {
+		t.Fatal("plan was not deleted from the repository")
+	}
+	if len(publisher.published) != 1 || publisher.published[0].Event != events.PlanDeleted || publisher.published[0].PlanID != planID {
+		t.Fatalf("unexpected deletion event: %#v", publisher.published)
 	}
 }
 

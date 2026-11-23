@@ -73,21 +73,18 @@ func (s *AuthService) createSession(
 	return accessToken, rawRefresh, nil
 }
 
-// Refresh — validates refresh token and issues new access token
-func (s *AuthService) Refresh(ctx context.Context, userID uuid.UUID, rawRefreshToken string) (string, error) {
-	session, err := s.sessionRepo.FindByUserID(ctx, userID)
-	if err != nil {
-		return "", fmt.Errorf("session not found")
-	}
-
-	// hash the incoming token and compare
+// Refresh — validates the opaque refresh token and issues a new access token.
+// The user is resolved from the session row, so an expired (or already
+// deleted) access-token cookie is not required.
+func (s *AuthService) Refresh(ctx context.Context, rawRefreshToken string) (string, error) {
 	incomingHash := utils.HashOTP(rawRefreshToken, "refresh")
-	if incomingHash != session.RefreshTokenHash {
+	session, err := s.sessionRepo.FindByTokenHash(ctx, incomingHash)
+	if err != nil {
 		return "", fmt.Errorf("invalid refresh token")
 	}
 
 	// fetch user for name claim
-	user, err := s.userRepo.FindByID(ctx, userID)
+	user, err := s.userRepo.FindByID(ctx, session.UserID)
 	if err != nil {
 		return "", fmt.Errorf("user not found")
 	}

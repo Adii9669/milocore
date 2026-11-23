@@ -55,8 +55,10 @@ type PlanService interface {
 	CreateDMPlan(context.Context, uuid.UUID, uuid.UUID, PlanInput) (*models.Plan, error)
 	ListChannelPlans(context.Context, uuid.UUID, uuid.UUID) ([]models.Plan, error)
 	ListDMPlans(context.Context, uuid.UUID, uuid.UUID) ([]models.Plan, error)
+	ListMyPlans(context.Context, uuid.UUID) ([]models.Plan, error)
 	GetPlan(context.Context, uuid.UUID, uuid.UUID) (*models.Plan, error)
 	UpdatePlan(context.Context, uuid.UUID, uuid.UUID, UpdatePlanInput) (*models.Plan, error)
+	DeletePlan(context.Context, uuid.UUID, uuid.UUID) error
 	UpdatePlanStatus(context.Context, uuid.UUID, uuid.UUID, string, time.Time) (*models.Plan, error)
 	SetResponse(context.Context, uuid.UUID, uuid.UUID, models.PlanResponseStatus) (*PlanParticipationSummary, error)
 	GetParticipants(context.Context, uuid.UUID, uuid.UUID) (*PlanParticipationSummary, error)
@@ -199,6 +201,27 @@ func (s *planService) ListDMPlans(ctx context.Context, userID, otherUserID uuid.
 	return s.plans.ListForDM(ctx, userLowID, userHighID)
 }
 
+func (s *planService) ListMyPlans(ctx context.Context, userID uuid.UUID) ([]models.Plan, error) {
+	plans, err := s.plans.ListCreatedBy(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	accessible := make([]models.Plan, 0, len(plans))
+	for i := range plans {
+		if plans[i].CreatorID != userID {
+			continue
+		}
+		canAccess, err := s.canAccessPlanTarget(ctx, userID, &plans[i])
+		if err != nil {
+			return nil, err
+		}
+		if canAccess {
+			accessible = append(accessible, plans[i])
+		}
+	}
+	return accessible, nil
+}
+
 func (s *planService) GetPlan(ctx context.Context, userID, planID uuid.UUID) (*models.Plan, error) {
 	return s.authorizePlan(ctx, userID, planID)
 }
@@ -237,6 +260,28 @@ func (s *planService) UpdatePlan(ctx context.Context, userID, planID uuid.UUID, 
 	}
 	s.publishPlanEvent(updated, events.PlanUpdated, recipients)
 	return updated, nil
+}
+
+func (s *planService) DeletePlan(ctx context.Context, userID, planID uuid.UUID) error {
+	plan, err := s.authorizePlan(ctx, userID, planID)
+	if err != nil {
+		return err
+	}
+	if plan.CreatorID != userID {
+		return ErrPlanCreatorOnly
+	}
+	recipients, err := s.planRecipients(ctx, plan)
+	if err != nil {
+		return err
+	}
+	if err := s.plans.Delete(ctx, plan.ID); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ErrPlanNotFound
+		}
+		return err
+	}
+	s.publishPlanEvent(plan, events.PlanDeleted, recipients)
+	return nil
 }
 
 func (s *planService) UpdatePlanStatus(ctx context.Context, userID, planID uuid.UUID, status string, expectedUpdatedAt time.Time) (*models.Plan, error) {
@@ -318,6 +363,33 @@ func validatePlanUpdateInput(input UpdatePlanInput, existing *models.Plan) (Upda
 		}
 	}
 	return input, nil
+}
+
+func (s *planService) canAccessPlanTarget(ctx context.Context, userID uuid.UUID, plan *models.Plan) (bool, error) {
+	if plan.ChannelID != nil {
+		err := s.authorizeChannel(ctx, userID, *plan.ChannelID)
+		if errors.Is(err, ErrPlanAccessDenied) || errors.Is(err, ErrPlanChatNotFound) {
+			return false, nil
+		}
+		return err == nil, err
+	}
+	if plan.DMUserLowID == nil || plan.DMUserHighID == nil {
+		return false, nil
+	}
+	var otherUserID uuid.UUID
+	switch userID {
+	case *plan.DMUserLowID:
+		otherUserID = *plan.DMUserHighID
+	case *plan.DMUserHighID:
+		otherUserID = *plan.DMUserLowID
+	default:
+		return false, nil
+	}
+	err := s.authorizeDM(ctx, userID, otherUserID)
+	if errors.Is(err, ErrPlanAccessDenied) || errors.Is(err, ErrPlanChatNotFound) {
+		return false, nil
+	}
+	return err == nil, err
 }
 
 func (s *planService) authorizeChannel(ctx context.Context, userID, channelID uuid.UUID) error {

@@ -12,6 +12,7 @@ import (
 type SessionRepository interface {
 	Create(ctx context.Context, session *models.Session) error
 	FindByUserID(ctx context.Context, userID uuid.UUID) (*models.Session, error)
+	FindByTokenHash(ctx context.Context, hash string) (*models.Session, error)
 	DeleteByUserID(ctx context.Context, userID uuid.UUID) error
 	DeleteExpired(ctx context.Context) error
 }
@@ -34,6 +35,17 @@ func (r *sessionRepository) FindByUserID(ctx context.Context, userID uuid.UUID) 
 	var session models.Session
 	err := r.db.WithContext(ctx).
 		Where("user_id = ? AND expires_at > ?", userID, time.Now()).
+		First(&session).Error
+	return &session, err
+}
+
+// FindByTokenHash looks a session up by the hashed refresh token. This lets
+// the refresh endpoint identify the user even after the access token cookie
+// has expired and disappeared from the browser.
+func (r *sessionRepository) FindByTokenHash(ctx context.Context, hash string) (*models.Session, error) {
+	var session models.Session
+	err := r.db.WithContext(ctx).
+		Where("refresh_token_hash = ? AND expires_at > ?", hash, time.Now()).
 		First(&session).Error
 	return &session, err
 }

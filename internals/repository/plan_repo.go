@@ -16,9 +16,11 @@ var ErrPlanPollExists = errors.New("a poll already exists for this plan")
 
 type PlanRepository interface {
 	Create(context.Context, *models.Plan) error
+	Delete(context.Context, uuid.UUID) error
 	FindByID(context.Context, uuid.UUID) (*models.Plan, error)
 	UpdateFields(context.Context, uuid.UUID, time.Time, string, *string, time.Time, *time.Time, *string) error
 	UpdateStatus(context.Context, uuid.UUID, time.Time, string) error
+	ListCreatedBy(context.Context, uuid.UUID) ([]models.Plan, error)
 	ListForChannel(context.Context, uuid.UUID) ([]models.Plan, error)
 	ListForDM(context.Context, uuid.UUID, uuid.UUID) ([]models.Plan, error)
 	UpsertParticipantResponse(context.Context, *models.PlanParticipant) error
@@ -34,6 +36,17 @@ func NewPlanRepository(db *gorm.DB) PlanRepository { return &planRepository{db: 
 
 func (r *planRepository) Create(ctx context.Context, plan *models.Plan) error {
 	return r.db.WithContext(ctx).Create(plan).Error
+}
+
+func (r *planRepository) Delete(ctx context.Context, planID uuid.UUID) error {
+	result := r.db.WithContext(ctx).Delete(&models.Plan{}, "id = ?", planID)
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+	return nil
 }
 
 func (r *planRepository) FindByID(ctx context.Context, planID uuid.UUID) (*models.Plan, error) {
@@ -71,6 +84,16 @@ func (r *planRepository) UpdateStatus(ctx context.Context, planID uuid.UUID, exp
 		return ErrPlanStale
 	}
 	return nil
+}
+
+func (r *planRepository) ListCreatedBy(ctx context.Context, creatorID uuid.UUID) ([]models.Plan, error) {
+	var plans []models.Plan
+	err := r.db.WithContext(ctx).
+		Preload("Creator").
+		Where("creator_id = ?", creatorID).
+		Order("start_at ASC, created_at ASC").
+		Find(&plans).Error
+	return plans, err
 }
 
 func (r *planRepository) UpsertParticipantResponse(ctx context.Context, response *models.PlanParticipant) error {
