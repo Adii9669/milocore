@@ -36,6 +36,9 @@ func AuthMiddleware(next http.Handler) http.Handler {
 		}
 
 		if tokenString == "" {
+			// The access cookie is gone (its 15-minute MaxAge elapsed). Tell
+			// the client to use its refresh cookie instead of logging out.
+			w.Header().Set("X-Token-Expired", "true")
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
@@ -49,6 +52,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 
 		userID, err := uuid.Parse(claims.UserID)
 		if err != nil {
+			w.Header().Set("X-Token-Expired", "true")
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}

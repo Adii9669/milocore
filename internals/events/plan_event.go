@@ -4,6 +4,7 @@ import "github.com/google/uuid"
 
 const (
 	PlanCreated        = "plan.created"
+	PlanDeleted        = "plan.deleted"
 	PlanResponseChange = "plan.response_changed"
 	PlanUpdated        = "plan.updated"
 	PlanConfirmed      = "plan.confirmed"

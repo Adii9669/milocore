@@ -3,13 +3,18 @@ package repository
 import (
 	"chat-server/internals/db/models"
 	"context"
-	"log"
+	"errors"
 	"slices"
 	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
+
+// ErrChannelAccessDenied is returned when a user asks for history from a
+// channel they do not belong to. The service layer translates this into a
+// 403 instead of leaking whether the channel exists.
+var ErrChannelAccessDenied = errors.New("channel access denied")
 
 type MessageRepository interface {
 	SaveMessage(context.Context, *models.Message) error
@@ -59,10 +64,9 @@ func (r *messageRepository) FindMessageByID(ctx context.Context, id uuid.UUID) (
 	return &message, nil
 }
 
-// What this does
-// Fetches group chat history
-// Sorted oldest → newest
-// Limit applied
+// GetChannelMessageHistory fetches group chat history without a per-user
+// deletion filter. It is kept for repositories/tests that do not implement
+// MessageDeletionRepository.
 func (r *messageRepository) GetChannelMessageHistory(
 	ctx context.Context,
 	channelID uuid.UUID,
@@ -72,31 +76,26 @@ func (r *messageRepository) GetChannelMessageHistory(
 
 	var messages []models.Message
 
-	start := time.Now()
+	// Joins("Sender") makes GORM load the sender in the same SQL statement.
+	// The old Preload("Sender") did a second round trip for every page.
 	query := r.db.
 		WithContext(ctx).
-		Preload("Sender").
-		Where("channel_id= ?", channelID).
-		Find(&messages)
-	log.Println("Messages only:", time.Since(start))
+		Joins("Sender").
+		Where("messages.channel_id = ?", channelID)
 
 	if cursor != nil {
-		query = query.Where("created_at < ?", *cursor)
+		query = query.Where("messages.created_at < ?", *cursor)
 	}
 
-	start2 := time.Now()
 	err := query.
-		Order("created_at Desc").
+		Order("messages.created_at DESC").
 		Limit(limit).
 		Find(&messages).Error
-
 	if err != nil {
 		return nil, err
 	}
 
-	log.Println("Query time:", time.Since(start2))
-
-	// Reverse in memory so frontend gets ASC order
+	// Reverse in memory so frontend gets ASC order.
 	slices.Reverse(messages)
 
 	return messages, nil
@@ -120,19 +119,19 @@ func (r *messageRepository) GetDmMessageHistory(
 
 	query := r.db.
 		WithContext(ctx).
-		Preload("Sender").
+		Joins("Sender").
 		Where(
-			"(sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?)",
+			"((messages.sender_id = ? AND messages.receiver_id = ?) OR (messages.sender_id = ? AND messages.receiver_id = ?))",
 			userA, userB,
 			userB, userA,
 		)
 
 	if cursor != nil {
-		query = query.Where("created_at < ?", *cursor)
+		query = query.Where("messages.created_at < ?", *cursor)
 	}
 
 	err := query.
-		Order("created_at Desc").
+		Order("messages.created_at DESC").
 		Limit(limit).
 		Find(&messages).Error
 
@@ -183,27 +182,60 @@ func (r *messageRepository) DeleteMessage(ctx context.Context, messageID uuid.UU
 
 func (r *messageRepository) GetDmMessageHistoryForUser(ctx context.Context, userA, userB, currentUser uuid.UUID, limit int, cursor *time.Time) ([]models.Message, error) {
 	var messages []models.Message
-	query := r.db.WithContext(ctx).Preload("Sender").Where(
-		"((sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?)) AND NOT EXISTS (SELECT 1 FROM message_user_deletions mud WHERE mud.message_id = messages.id AND mud.user_id = ?)",
+	query := r.db.WithContext(ctx).Joins("Sender").Where(
+		"((messages.sender_id = ? AND messages.receiver_id = ?) OR (messages.sender_id = ? AND messages.receiver_id = ?)) AND NOT EXISTS (SELECT 1 FROM message_user_deletions mud WHERE mud.message_id = messages.id AND mud.user_id = ?)",
 		userA, userB, userB, userA, currentUser,
 	)
 	if cursor != nil {
-		query = query.Where("created_at < ?", *cursor)
+		query = query.Where("messages.created_at < ?", *cursor)
 	}
-	err := query.Order("created_at DESC").Limit(limit).Find(&messages).Error
+	err := query.Order("messages.created_at DESC").Limit(limit).Find(&messages).Error
+	if err != nil {
+		return nil, err
+	}
 	slices.Reverse(messages)
-	return messages, err
+	return messages, nil
 }
 
 func (r *messageRepository) GetChannelMessageHistoryForUser(ctx context.Context, channelID, currentUser uuid.UUID, limit int, cursor *time.Time) ([]models.Message, error) {
 	var messages []models.Message
-	query := r.db.WithContext(ctx).Preload("Sender").Where(
-		"channel_id = ? AND NOT EXISTS (SELECT 1 FROM message_user_deletions mud WHERE mud.message_id = messages.id AND mud.user_id = ?)", channelID, currentUser,
-	)
+
+	// One SELECT:
+	//   - messages for the channel
+	//   - sender joined through users
+	//   - membership enforced by joining channel_members
+	//   - per-user deleted messages excluded with NOT EXISTS
+	query := r.db.WithContext(ctx).
+		Joins("Sender").
+		Joins("JOIN channel_members AS cm ON cm.channel_id = messages.channel_id AND cm.user_id = ?", currentUser).
+		Where("messages.channel_id = ?", channelID).
+		Where("NOT EXISTS (SELECT 1 FROM message_user_deletions mud WHERE mud.message_id = messages.id AND mud.user_id = ?)", currentUser)
+
 	if cursor != nil {
-		query = query.Where("created_at < ?", *cursor)
+		query = query.Where("messages.created_at < ?", *cursor)
 	}
-	err := query.Order("created_at DESC").Limit(limit).Find(&messages).Error
+
+	err := query.Order("messages.created_at DESC").Limit(limit).Find(&messages).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// A zero-row result can mean either "empty channel" or "not a member".
+	// Only pay for the membership check when the page is empty. Normal pages
+	// with messages already proved membership through the JOIN above.
+	if len(messages) == 0 {
+		var membershipCount int64
+		if err := r.db.WithContext(ctx).
+			Model(&models.ChannelMember{}).
+			Where("channel_id = ? AND user_id = ?", channelID, currentUser).
+			Count(&membershipCount).Error; err != nil {
+			return nil, err
+		}
+		if membershipCount == 0 {
+			return nil, ErrChannelAccessDenied
+		}
+	}
+
 	slices.Reverse(messages)
-	return messages, err
+	return messages, nil
 }

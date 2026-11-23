@@ -12,6 +12,10 @@ import (
 	"github.com/google/uuid"
 )
 
+// ErrChatAccessDenied means the authenticated user is not allowed to read the
+// requested conversation. Handlers map this to HTTP 403.
+var ErrChatAccessDenied = errors.New("chat access denied")
+
 type ChatHistroyService interface {
 	ChannelHistory(
 		ctx context.Context,
@@ -59,6 +63,9 @@ func (s *chathistroyservice) ChannelHistory(
 		messages, err = s.messageRepo.GetChannelMessageHistory(ctx, channelID, limit, cursor)
 	}
 	if err != nil {
+		if errors.Is(err, repository.ErrChannelAccessDenied) {
+			return nil, ErrChatAccessDenied
+		}
 		return nil, errors.New("Failed to get channel Histroy")
 	}
 

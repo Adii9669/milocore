@@ -2,6 +2,7 @@ package services
 
 import (
 	"chat-server/internals/db/models"
+	"chat-server/internals/repository"
 	"context"
 	"errors"
 	"testing"
@@ -67,6 +68,36 @@ func (m *MockMessageRepo) GetDmMessageHistory(ctx context.Context, userA, userB 
 	return nil, nil
 }
 
+// MockDeletionMessageRepo implements both MessageRepository and
+// MessageDeletionRepository so service tests can exercise the user-aware path.
+type MockDeletionMessageRepo struct {
+	MockMessageRepo
+	GetChannelMessageHistoryForUserFn func(context.Context, uuid.UUID, uuid.UUID, int, *time.Time) ([]models.Message, error)
+}
+
+func (m *MockDeletionMessageRepo) HideMessageForUser(context.Context, uuid.UUID, uuid.UUID) error {
+	return nil
+}
+
+func (m *MockDeletionMessageRepo) IsMessageHiddenForUser(context.Context, uuid.UUID, uuid.UUID) (bool, error) {
+	return false, nil
+}
+
+func (m *MockDeletionMessageRepo) DeleteMessage(context.Context, uuid.UUID) error {
+	return nil
+}
+
+func (m *MockDeletionMessageRepo) GetDmMessageHistoryForUser(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, int, *time.Time) ([]models.Message, error) {
+	return nil, nil
+}
+
+func (m *MockDeletionMessageRepo) GetChannelMessageHistoryForUser(ctx context.Context, channelID, currentUser uuid.UUID, limit int, cursor *time.Time) ([]models.Message, error) {
+	if m.GetChannelMessageHistoryForUserFn != nil {
+		return m.GetChannelMessageHistoryForUserFn(ctx, channelID, currentUser, limit, cursor)
+	}
+	return nil, nil
+}
+
 // Testing the Success
 func TestChannelHistory_Success(t *testing.T) {
 	ctx := context.Background()
@@ -110,6 +141,23 @@ func TestChannelHistory_Faliure(t *testing.T) {
 	result, err := service.ChannelHistory(ctx, uuid.New(), uuid.New(), 10, nil)
 
 	assert.Error(t, err)
+	assert.Nil(t, result)
+}
+
+func TestChannelHistory_AccessDenied(t *testing.T) {
+	ctx := context.Background()
+
+	mockRepo := &MockDeletionMessageRepo{
+		GetChannelMessageHistoryForUserFn: func(context.Context, uuid.UUID, uuid.UUID, int, *time.Time) ([]models.Message, error) {
+			return nil, repository.ErrChannelAccessDenied
+		},
+	}
+
+	service := NewChatHistoryService(mockRepo)
+
+	result, err := service.ChannelHistory(ctx, uuid.New(), uuid.New(), 10, nil)
+
+	assert.ErrorIs(t, err, ErrChatAccessDenied)
 	assert.Nil(t, result)
 }
 

@@ -170,6 +170,23 @@ func (h *Handler) UpdatePlan(w http.ResponseWriter, r *http.Request) {
 	writePlanJSON(w, http.StatusOK, toPlanResponse(plan))
 }
 
+func (h *Handler) DeletePlan(w http.ResponseWriter, r *http.Request) {
+	userID, ok := authenticatedUser(w, r)
+	if !ok {
+		return
+	}
+	planID, err := uuid.Parse(chi.URLParam(r, "planId"))
+	if err != nil {
+		http.Error(w, "invalid plan ID", http.StatusBadRequest)
+		return
+	}
+	if err := h.service.DeletePlan(r.Context(), userID, planID); err != nil {
+		writePlanError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (h *Handler) UpdatePlanStatus(w http.ResponseWriter, r *http.Request) {
 	userID, ok := authenticatedUser(w, r)
 	if !ok {
@@ -309,6 +326,23 @@ func (h *Handler) ListDMPlans(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	plans, err := h.service.ListDMPlans(r.Context(), userID, otherUserID)
+	if err != nil {
+		writePlanError(w, err)
+		return
+	}
+	response := make([]dto.PlanResponse, 0, len(plans))
+	for i := range plans {
+		response = append(response, toPlanResponse(&plans[i]))
+	}
+	writePlanJSON(w, http.StatusOK, response)
+}
+
+func (h *Handler) ListMyPlans(w http.ResponseWriter, r *http.Request) {
+	userID, ok := authenticatedUser(w, r)
+	if !ok {
+		return
+	}
+	plans, err := h.service.ListMyPlans(r.Context(), userID)
 	if err != nil {
 		writePlanError(w, err)
 		return

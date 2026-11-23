@@ -27,6 +27,15 @@ func TestListPlansRequiresAuthentication(t *testing.T) {
 	}
 }
 
+func TestListMyPlansRequiresAuthentication(t *testing.T) {
+	handler := NewHandler(nil)
+	recorder := httptest.NewRecorder()
+	handler.ListMyPlans(recorder, httptest.NewRequest("GET", "/api/plans/mine", nil))
+	if recorder.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401 for unauthenticated request, got %d", recorder.Code)
+	}
+}
+
 func TestParticipantHandlersRequireAuthentication(t *testing.T) {
 	handler := NewHandler(nil)
 	for _, test := range []struct {
@@ -58,6 +67,7 @@ func TestPlanDetailsAndUpdateHandlersRequireAuthentication(t *testing.T) {
 		{method: "POST", path: "/api/plans/id/poll", handle: handler.CreatePoll},
 		{method: "PUT", path: "/api/plans/id/poll/votes", handle: handler.SetPollVotes},
 		{method: "PUT", path: "/api/plans/id", handle: handler.UpdatePlan},
+		{method: "DELETE", path: "/api/plans/id", handle: handler.DeletePlan},
 		{method: "PUT", path: "/api/plans/id/status", handle: handler.UpdatePlanStatus},
 	} {
 		recorder := httptest.NewRecorder()

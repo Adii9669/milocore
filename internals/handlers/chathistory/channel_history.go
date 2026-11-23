@@ -2,8 +2,10 @@ package chathistory
 
 import (
 	"chat-server/internals/middleware"
+	"chat-server/internals/services"
 	"chat-server/internals/transport/dto"
 	"chat-server/internals/utils"
+	"errors"
 	"net/http"
 	"strconv"
 	"time"
@@ -51,6 +53,10 @@ func (h *Handler) GetChannelHistory(w http.ResponseWriter, r *http.Request) {
 
 	messages, err := h.service.ChannelHistory(ctx, channelID, userID, limit, cursor)
 	if err != nil {
+		if errors.Is(err, services.ErrChatAccessDenied) {
+			http.Error(w, "forbidden", http.StatusForbidden)
+			return
+		}
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}

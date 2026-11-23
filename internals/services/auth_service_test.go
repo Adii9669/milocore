@@ -115,9 +115,10 @@ func (m *MockUserRepo) MarkVerifiedAndClearOTP(ctx context.Context, id uuid.UUID
 //
 
 type MockSessionRepo struct {
-	CreateFn       func(ctx context.Context, s *models.Session) error
-	FindByUserIDFn func(ctx context.Context, id uuid.UUID) (*models.Session, error)
-	DeleteFn       func(ctx context.Context, id uuid.UUID) error
+	CreateFn          func(ctx context.Context, s *models.Session) error
+	FindByUserIDFn    func(ctx context.Context, id uuid.UUID) (*models.Session, error)
+	FindByTokenHashFn func(ctx context.Context, hash string) (*models.Session, error)
+	DeleteFn          func(ctx context.Context, id uuid.UUID) error
 }
 
 func (m *MockSessionRepo) Create(ctx context.Context, s *models.Session) error {
@@ -130,6 +131,13 @@ func (m *MockSessionRepo) Create(ctx context.Context, s *models.Session) error {
 func (m *MockSessionRepo) FindByUserID(ctx context.Context, id uuid.UUID) (*models.Session, error) {
 	if m.FindByUserIDFn != nil {
 		return m.FindByUserIDFn(ctx, id)
+	}
+	return nil, errors.New("not found")
+}
+
+func (m *MockSessionRepo) FindByTokenHash(ctx context.Context, hash string) (*models.Session, error) {
+	if m.FindByTokenHashFn != nil {
+		return m.FindByTokenHashFn(ctx, hash)
 	}
 	return nil, errors.New("not found")
 }
@@ -284,4 +292,59 @@ func TestVerifyOTP_Expired(t *testing.T) {
 	_, _, _, err := service.VerifyOTP(ctx, "test@example.com", "123456")
 
 	assert.Error(t, err)
+}
+
+//
+// ================= REFRESH TESTS =================
+//
+
+func TestRefresh_Success(t *testing.T) {
+	ctx := context.Background()
+	userID := uuid.New()
+	raw := "raw-refresh-token"
+	expectedHash := utils.HashOTP(raw, "refresh")
+
+	mockUserRepo := &MockUserRepo{
+		FindByIDFn: func(ctx context.Context, id uuid.UUID) (*models.User, error) {
+			assert.Equal(t, userID, id)
+			return &models.User{ID: userID, Name: "milo"}, nil
+		},
+	}
+	mockSessionRepo := &MockSessionRepo{
+		FindByTokenHashFn: func(ctx context.Context, hash string) (*models.Session, error) {
+			assert.Equal(t, expectedHash, hash)
+			return &models.Session{
+				UserID:    userID,
+				ExpiresAt: time.Now().Add(time.Hour),
+			}, nil
+		},
+	}
+
+	service := NewAuthService(mockUserRepo, mockSessionRepo, nil)
+
+	token, err := service.Refresh(ctx, raw)
+
+	assert.NoError(t, err)
+	assert.NotEmpty(t, token)
+
+	claims, err := utils.ValidateToken(token)
+	assert.NoError(t, err)
+	assert.Equal(t, userID.String(), claims.UserID)
+}
+
+func TestRefresh_InvalidToken(t *testing.T) {
+	ctx := context.Background()
+
+	mockSessionRepo := &MockSessionRepo{
+		FindByTokenHashFn: func(ctx context.Context, hash string) (*models.Session, error) {
+			return nil, errors.New("not found")
+		},
+	}
+
+	service := NewAuthService(&MockUserRepo{}, mockSessionRepo, nil)
+
+	token, err := service.Refresh(ctx, "bad-token")
+
+	assert.Error(t, err)
+	assert.Empty(t, token)
 }
