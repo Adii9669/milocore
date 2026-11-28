@@ -1,12 +1,15 @@
 package services
 
 import (
+	"chat-server/internals/config"
 	"chat-server/internals/db/models"
 	"chat-server/internals/repository"
 	"chat-server/internals/transport/dto"
 	"context"
 	"errors"
+	"gorm.io/gorm/clause"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -40,20 +43,25 @@ type ChannelService interface {
 }
 
 type channelService struct {
-	db          *gorm.DB
-	channelRepo repository.ChannelRepository
-	userRepo    repository.UserRepository
+	db             *gorm.DB
+	channelRepo    repository.ChannelRepository
+	userRepo       repository.UserRepository
+	publishInvites func(uuid.UUID, ...uuid.UUID)
 }
 
 func NewChannelService(
 	db *gorm.DB,
 	channelRepo repository.ChannelRepository,
-	userRepo repository.UserRepository) ChannelService {
-	return &channelService{
+	userRepo repository.UserRepository, publishers ...func(uuid.UUID, ...uuid.UUID)) ChannelService {
+	service := &channelService{
 		db:          db,
 		userRepo:    userRepo,
 		channelRepo: channelRepo,
 	}
+	if len(publishers) != 0 {
+		service.publishInvites = publishers[0]
+	}
+	return service
 }
 
 func (s *channelService) CreateChannel(ctx context.Context, requesterID uuid.UUID, name string) (dto.ChannelResponse, error) {
@@ -155,6 +163,30 @@ func (s *channelService) DeleteChannel(
 	if requester.Role != models.RoleOwner {
 		return ErrPermissionDenied
 	}
+	if config.GroupInvitesEnabled() {
+		var recipients []uuid.UUID
+		err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+			var channel models.Channel
+			if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Select("id").First(&channel, "id = ?", channelID).Error; err != nil {
+				return err
+			}
+			if err := tx.Model(&models.ChannelInvite{}).Where("channel_id = ? AND status = 'pending'", channelID).
+				Pluck("invitee_id", &recipients).Error; err != nil {
+				return err
+			}
+			var managers []uuid.UUID
+			if err := tx.Model(&models.ChannelMember{}).Where("channel_id = ? AND role IN ?", channelID, []string{"owner", "admin"}).
+				Pluck("user_id", &managers).Error; err != nil {
+				return err
+			}
+			recipients = append(recipients, managers...)
+			return tx.Delete(&channel).Error
+		})
+		if err == nil && s.publishInvites != nil && len(recipients) > 0 {
+			s.publishInvites(channelID, recipients...)
+		}
+		return err
+	}
 	return s.channelRepo.DeleteChannel(ctx, channelID)
 }
 
@@ -164,7 +196,19 @@ func (s *channelService) AddMember(
 	requesterID uuid.UUID,
 	targetUserID uuid.UUID,
 ) error {
-	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	useInvites := config.GroupInvitesEnabled()
+	var removed int64
+	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if useInvites {
+			var channel models.Channel
+			err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Select("id").First(&channel, "id = ?", channelID).Error
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return ErrChannelNotFound
+			}
+			if err != nil {
+				return err
+			}
+		}
 
 		//Check channel exists
 		exists, err := s.channelRepo.ExistByID(ctx, channelID)
@@ -187,6 +231,18 @@ func (s *channelService) AddMember(
 		if requesterMember.Role != models.RoleOwner &&
 			requesterMember.Role != models.RoleAdmin {
 			return ErrPermissionDenied
+		}
+
+		if useInvites {
+			var count int64
+			low, high := normalizePair(requesterID, targetUserID)
+			err := tx.Model(&models.Friend{}).Where("user_low_id = ? AND user_high_id = ? AND status = ?", low, high, StatusAccepted).Count(&count).Error
+			if err != nil {
+				return err
+			}
+			if count == 0 {
+				return ErrPermissionDenied
+			}
 		}
 
 		// 4️⃣ Check target user exists
@@ -222,8 +278,19 @@ func (s *channelService) AddMember(
 			return err
 		}
 
+		if useInvites {
+			result := tx.Model(&models.ChannelInvite{}).
+				Where("channel_id = ? AND invitee_id = ? AND status = 'pending'", channelID, targetUserID).
+				Updates(map[string]any{"status": "cancelled", "responded_at": time.Now().UTC()})
+			removed = result.RowsAffected
+			return result.Error
+		}
 		return nil
 	})
+	if err == nil && removed > 0 {
+		s.invalidateInvites(ctx, channelID, targetUserID, requesterID)
+	}
+	return err
 }
 
 func (s *channelService) RemoveMember(ctx context.Context, channelID, requesterID, targetID uuid.UUID) error {
@@ -262,6 +329,12 @@ func (s *channelService) RemoveMember(ctx context.Context, channelID, requesterI
 	}
 
 	//Safe to remove
+	if config.GroupInvitesEnabled() {
+		return s.revokeInviter(ctx, channelID, targetID, func(tx *gorm.DB) error {
+			return tx.Where("channel_id = ? AND user_id = ?", channelID, targetID).
+				Delete(&models.ChannelMember{}).Error
+		})
+	}
 	return s.channelRepo.RemoveMember(ctx, channelID, targetID)
 }
 
@@ -303,8 +376,49 @@ func (s *channelService) UpdateMemberRole(ctx context.Context, channelID,
 		return ErrInvalidRole
 	}
 
+	if config.GroupInvitesEnabled() && target.Role == models.RoleAdmin && newRole == models.RoleMember {
+		return s.revokeInviter(ctx, channelID, targetID, func(tx *gorm.DB) error {
+			return tx.Model(&models.ChannelMember{}).Where("channel_id = ? AND user_id = ?", channelID, targetID).
+				Update("role", newRole).Error
+		})
+	}
 	return s.channelRepo.UpdateRole(ctx, channelID, targetID, newRole)
 
+}
+
+func (s *channelService) revokeInviter(ctx context.Context, channelID, targetID uuid.UUID, change func(*gorm.DB) error) error {
+	var recipients []uuid.UUID
+	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var channel models.Channel
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Select("id").First(&channel, "id = ?", channelID).Error; err != nil {
+			return err
+		}
+		if err := change(tx); err != nil {
+			return err
+		}
+		pending := tx.Model(&models.ChannelInvite{}).
+			Where("channel_id = ? AND inviter_id = ? AND status = 'pending'", channelID, targetID)
+		if err := pending.Session(&gorm.Session{}).Pluck("invitee_id", &recipients).Error; err != nil {
+			return err
+		}
+		return pending.
+			Updates(map[string]any{"status": "cancelled", "responded_at": time.Now().UTC()}).Error
+	})
+	if err == nil && len(recipients) > 0 {
+		s.invalidateInvites(ctx, channelID, recipients...)
+	}
+	return err
+}
+
+func (s *channelService) invalidateInvites(ctx context.Context, channel uuid.UUID, recipients ...uuid.UUID) {
+	if s.publishInvites == nil {
+		return
+	}
+	var managers []uuid.UUID
+	_ = s.db.WithContext(ctx).Model(&models.ChannelMember{}).
+		Where("channel_id = ? AND role IN ?", channel, []string{"owner", "admin"}).
+		Pluck("user_id", &managers).Error
+	s.publishInvites(channel, append(recipients, managers...)...)
 }
 
 // RenameChannel

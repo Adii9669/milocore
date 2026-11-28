@@ -65,11 +65,7 @@ func seralizeMessageEvent(msg events.MessageEvent) ([]byte, error) {
 // --------------------------------------------------------- braodcast messages
 func (h *Hub) handleBroadcast(data []byte) {
 	for client := range h.clients {
-		select {
-		case client.send <- data:
-		default:
-			h.unregister <- client
-		}
+		h.sendToClient(client, data)
 	}
 }
 
@@ -88,11 +84,7 @@ func (h *Hub) routeDMMessage(payload []byte, msg events.MessageEvent) {
 	}
 	for userID := range recipients {
 		for client := range h.users[userID] {
-			select {
-			case client.send <- payload:
-			default:
-				h.unregister <- client
-			}
+			h.sendToClient(client, payload)
 		}
 	}
 }
@@ -112,11 +104,7 @@ func (h *Hub) routeChannelMessage(payload []byte, msg events.MessageEvent) {
 
 	// send message to each connection
 	for client := range channelClients {
-		select {
-		case client.send <- payload:
-		default:
-			h.unregister <- client
-		}
+		h.sendToClient(client, payload)
 	}
 
 }
@@ -131,11 +119,7 @@ func (h *Hub) handleRouteMessageDeletion(event events.MessageDeletionEvent) {
 	}
 	if event.ChannelID != nil {
 		for client := range h.channels[*event.ChannelID] {
-			select {
-			case client.send <- payload:
-			default:
-				h.unregister <- client
-			}
+			h.sendToClient(client, payload)
 		}
 		return
 	}
@@ -145,11 +129,7 @@ func (h *Hub) handleRouteMessageDeletion(event events.MessageDeletionEvent) {
 	}
 	for userID := range recipients {
 		for client := range h.users[userID] {
-			select {
-			case client.send <- payload:
-			default:
-				h.unregister <- client
-			}
+			h.sendToClient(client, payload)
 		}
 	}
 }
@@ -176,11 +156,7 @@ func (h *Hub) handleRoutePlanEvent(event events.PlanEvent) {
 		}
 		seen[userID] = struct{}{}
 		for client := range h.users[userID] {
-			select {
-			case client.send <- payload:
-			default:
-				h.unregister <- client
-			}
+			h.sendToClient(client, payload)
 		}
 	}
 }

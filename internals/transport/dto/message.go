@@ -10,7 +10,8 @@ type MessageResponse struct {
 	CreatedAt time.Time `json:"createdAt"`
 
 	//for dm
-	IsMine *bool `json:"isMine,omitempty"`
+	IsMine *bool  `json:"isMine,omitempty"`
+	Status string `json:"status,omitempty"`
 
 	//for channels
 	Sender         *SenderDTO `json:"sender,omitempty"`

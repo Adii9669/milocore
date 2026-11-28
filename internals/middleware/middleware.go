@@ -18,6 +18,8 @@ type contextKey struct{}
 
 var userIDKey = contextKey{}
 
+type sessionContextKey struct{}
+
 // AuthMiddleware uses the standard signature for gorilla/mux: func(http.Handler) http.Handler
 func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -57,6 +59,9 @@ func AuthMiddleware(next http.Handler) http.Handler {
 			return
 		}
 		ctx := context.WithValue(r.Context(), userIDKey, userID)
+		if sessionID, err := uuid.Parse(claims.ID); err == nil {
+			ctx = context.WithValue(ctx, sessionContextKey{}, sessionID)
+		}
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -67,4 +72,9 @@ func GetUserIDFromContext(ctx context.Context) (uuid.UUID, error) {
 		return uuid.Nil, errors.New("userID not found in context")
 	}
 	return userID, nil
+}
+
+func GetSessionIDFromContext(ctx context.Context) uuid.UUID {
+	id, _ := ctx.Value(sessionContextKey{}).(uuid.UUID)
+	return id
 }

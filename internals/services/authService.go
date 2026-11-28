@@ -33,8 +33,9 @@ func NewAuthService(
 }
 
 var (
-	ErrInvalidCredentials = errors.New("invalid credentials")
-	ErrNotVerified        = errors.New("account not verified")
+	ErrInvalidCredentials  = errors.New("invalid credentials")
+	ErrInvalidRefreshToken = errors.New("invalid refresh token")
+	ErrNotVerified         = errors.New("account not verified")
 )
 
 var emailRegex = regexp.MustCompile("^[a-zA-Z0-9.!#$%^&*+\\/?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
@@ -49,7 +50,8 @@ func (s *AuthService) createSession(
 	user *models.User,
 ) (accessToken, refreshToken string, err error) {
 	// 1. Generate access token
-	accessToken, err = utils.GenerateAccessToken(user.ID, user.Name)
+	sessionID := uuid.New()
+	accessToken, err = utils.GenerateSessionAccessToken(user.ID, user.Name, sessionID)
 	if err != nil {
 		return "", "", err
 	}
@@ -63,6 +65,7 @@ func (s *AuthService) createSession(
 	//3.Store the hash in the DB
 	expiresAt := time.Now().Add(utils.RefreshTokenExpiry)
 	session := &models.Session{
+		ID:               sessionID,
 		UserID:           user.ID,
 		RefreshTokenHash: refreshHash,
 		ExpiresAt:        expiresAt,
@@ -79,17 +82,22 @@ func (s *AuthService) createSession(
 func (s *AuthService) Refresh(ctx context.Context, rawRefreshToken string) (string, error) {
 	incomingHash := utils.HashOTP(rawRefreshToken, "refresh")
 	session, err := s.sessionRepo.FindByTokenHash(ctx, incomingHash)
+	if errors.Is(err, gorm.ErrRecordNotFound) || (err == nil && session == nil) {
+		return "", ErrInvalidRefreshToken
+	}
 	if err != nil {
-		return "", fmt.Errorf("invalid refresh token")
+		return "", fmt.Errorf("refresh session lookup: %w", err)
 	}
 
-	// fetch user for name claim
 	user, err := s.userRepo.FindByID(ctx, session.UserID)
+	if errors.Is(err, gorm.ErrRecordNotFound) || (err == nil && user == nil) {
+		return "", ErrInvalidRefreshToken
+	}
 	if err != nil {
-		return "", fmt.Errorf("user not found")
+		return "", fmt.Errorf("refresh user lookup: %w", err)
 	}
 
-	return utils.GenerateAccessToken(user.ID, user.Name)
+	return utils.GenerateSessionAccessToken(user.ID, user.Name, session.ID)
 }
 
 func (s *AuthService) Login(ctx context.Context, username, password string) (*models.User, string, string, error) {
@@ -283,7 +291,10 @@ func (s *AuthService) VerifyOTP(
 	return user, accessToken, refreshToken, nil
 }
 
-// Logout — deletes session from DB
-func (s *AuthService) Logout(ctx context.Context, userID uuid.UUID) error {
-	return s.sessionRepo.DeleteByUserID(ctx, userID)
+// Logout revokes the current refresh session. Legacy access tokens cannot identify a session.
+func (s *AuthService) Logout(ctx context.Context, userID, sessionID uuid.UUID) error {
+	if sessionID == uuid.Nil {
+		return nil
+	}
+	return s.sessionRepo.DeleteSession(ctx, userID, sessionID)
 }

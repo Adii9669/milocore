@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"time"
@@ -10,15 +11,21 @@ import (
 	"chat-server/internals/app"
 	"chat-server/internals/config"
 	"chat-server/internals/db"
+	"chat-server/internals/repository"
 	"chat-server/internals/utils"
 	"chat-server/internals/websockets"
 	"chat-server/router"
 )
 
-func StartCleanupScheduler() {
+func StartCleanupScheduler(sessions repository.SessionRepository) {
 	go func() {
 		for {
 			utils.CleanupUnverifiedUsers()
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			if err := sessions.DeleteExpired(ctx); err != nil {
+				log.Print("expired sessions could not be cleaned up")
+			}
+			cancel()
 			time.Sleep(24 * time.Hour) // run once a day
 		}
 	}()
@@ -46,17 +53,17 @@ func main() {
 	database := db.ConnectToDB()
 
 	//3.clean UP This is the use case of the go function to achive concurrency
-	StartCleanupScheduler()
+	StartCleanupScheduler(repository.NewSessionRepository(database))
 
 	//4. Create a websockets instance and run it
 	hub := websockets.NewHub()
-	go hub.Run()
 
 	//Setup the config for global use case
 	cfg := &config.Cfg
 
 	//5.create app container (DI)
 	application := app.NewApp(database, hub, cfg)
+	go hub.Run()
 	r := router.SetUpRouter(application)
 
 	// 6. Start the server USING the loaded configuration

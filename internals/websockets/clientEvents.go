@@ -2,35 +2,17 @@ package websockets
 
 import (
 	"context"
-	"log"
 	"time"
+
+	"github.com/google/uuid"
 )
 
-// -----------------------------------------------handle Delivered
-func (c *Client) handleDelivered(msg WSMessage) {
+func (c *Client) handleReceipt(messageID uuid.UUID, status string) {
 	ctx, cancel := context.WithTimeout(c.ctx, 5*time.Second)
 	defer cancel()
 
-	err := c.messageService.MarkDelivered(ctx, *msg.MessageID)
-	if err != nil {
-		log.Println("failed to mark delivered:", err)
-		return
+	sender, err := c.messageService.RecordDMReceipt(ctx, messageID, c.userID, status == "read")
+	if err == nil && sender != uuid.Nil {
+		c.hub.sendMessageStatus(sender, messageID, status)
 	}
-
-	// notify sender
-	c.hub.sendMessageStatus(c.userID, *msg.MessageID, "delivered")
-}
-
-// --------------------------------------------------------handleRead
-func (c *Client) handleRead(msg WSMessage) {
-	ctx, cancel := context.WithTimeout(c.ctx, 5*time.Second)
-	defer cancel()
-
-	err := c.messageService.MarkRead(ctx, *msg.MessageID, c.userID)
-	if err != nil {
-		log.Println("failed to mark read:", err)
-		return
-	}
-
-	c.hub.sendMessageStatus(c.userID, *msg.MessageID, "read")
 }

@@ -709,7 +709,7 @@ func (s *planService) publishPlanEvent(plan *models.Plan, eventType string, reci
 		return
 	}
 	s.events.PublishPlanEvent(events.PlanEvent{
-		Event: eventType, EventID: uuid.New(), PlanID: plan.ID, ChannelID: plan.ChannelID,
+		Event: eventType, EventID: uuid.New(), PlanID: plan.ID, CreatorID: plan.CreatorID, ChannelID: plan.ChannelID,
 		DMUserLowID: plan.DMUserLowID, DMUserHighID: plan.DMUserHighID, Recipients: recipients,
 	})
 }

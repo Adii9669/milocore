@@ -32,6 +32,7 @@ type Client struct {
 	cancel context.CancelFunc
 
 	messageService  services.MessageService
+	membership      ChannelMembership
 	messageLimiter  *rate.Limiter
 	typingLimiter   *rate.Limiter
 	readLimiter     *rate.Limiter
@@ -97,9 +98,11 @@ func (c *Client) readPump() {
 
 		switch wsMsg.Type {
 		case "join_channel":
-			c.hub.joinChannel(c, wsMsg.ChannelID)
+			if c.presenceLimiter.Allow() {
+				c.changeSubscription(wsMsg.ChannelID, true)
+			}
 		case "leave_channel":
-			c.hub.leaveChannel(c, wsMsg.ChannelID)
+			c.changeSubscription(wsMsg.ChannelID, false)
 		case "dm":
 			if !c.messageLimiter.Allow() {
 				log.Printf(
@@ -139,29 +142,16 @@ func (c *Client) readPump() {
 			c.lastTyping = time.Now()
 
 			wsMsg.UserID = c.userID
-			c.hub.broadcastTyping(c, wsMsg)
+			c.hub.roomAction <- func() { c.hub.broadcastTyping(c, wsMsg) }
 
 		case "typing_stop":
 
 			wsMsg.UserID = c.userID
-			c.hub.broadcastTyping(c, wsMsg)
-		case "delivered":
-			if !c.readLimiter.Allow() {
-				continue
+			c.hub.roomAction <- func() { c.hub.broadcastTyping(c, wsMsg) }
+		case "delivered", "read":
+			if wsMsg.MessageID != nil && c.readLimiter.Allow() {
+				c.handleReceipt(*wsMsg.MessageID, string(wsMsg.Type))
 			}
-			c.handleDelivered(wsMsg)
-		case "read":
-			if !c.readLimiter.Allow() {
-				continue
-			}
-
-			log.Printf(
-				"rate limit type=%s user=%s ip=%s",
-				wsMsg.Type,
-				c.userID,
-				c.conn.RemoteAddr(),
-			)
-			c.handleRead(wsMsg)
 		default:
 			log.Printf(
 				"unknown ws type=%s user=%s",
@@ -206,5 +196,30 @@ func (c *Client) writePump() {
 				return
 			}
 		}
+	}
+}
+
+func (c *Client) changeSubscription(channelID uuid.UUID, join bool) {
+	c.hub.roomAction <- func() {
+		if !c.hub.clients[c] {
+			return
+		}
+		if !join {
+			c.hub.leaveChannel(c, channelID)
+			return
+		}
+		if channelID == uuid.Nil || c.membership == nil {
+			return
+		}
+		ctx, cancel := context.WithTimeout(c.ctx, 2*time.Second)
+		defer cancel()
+		member, err := c.membership.IsMember(ctx, channelID, c.userID)
+		event := "channel.join_denied"
+		if err == nil && member {
+			c.hub.joinChannel(c, channelID)
+			event = "channel.joined"
+		}
+		payload, _ := json.Marshal(WSEvent{Event: event, Data: map[string]string{"channelId": channelID.String()}})
+		c.hub.sendToClient(c, payload)
 	}
 }

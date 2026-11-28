@@ -2,6 +2,7 @@ package config
 
 import (
 	"log"
+	"os"
 	//libraries
 	"github.com/caarlos0/env/v6" //for parsing the env file
 	"github.com/joho/godotenv"   //To load up the .env file at start
@@ -69,3 +70,5 @@ func LoadConfig() error {
 	}
 	return nil
 }
+
+func GroupInvitesEnabled() bool { return os.Getenv("FEATURE_GROUP_INVITES") == "true" }

@@ -2,11 +2,13 @@ package app
 
 import (
 	"chat-server/internals/config"
+	"chat-server/internals/push"
 	"chat-server/internals/repository"
 	"chat-server/internals/services"
 	"chat-server/internals/websockets"
 	"chat-server/storage"
 	"context"
+	"log"
 
 	"gorm.io/gorm"
 )
@@ -25,6 +27,7 @@ type App struct {
 	FriendRepo  repository.FriendRepository
 	ConvRepo    repository.Conversation
 	Config      *config.AppConfig
+	PushStore   *push.Store
 
 	// Services
 	ChannelService     services.ChannelService
@@ -52,6 +55,14 @@ func NewApp(
 	friendRepo := repository.NewFriendRepository(db)
 	convRepo := repository.NewConversation(db)
 	sessionRepo := repository.NewSessionRepository(db)
+	pushStore := push.NewStore(db)
+	sender, err := push.NewSender(pushStore, channelRepo)
+	if err != nil {
+		log.Printf("FCM push disabled: %v", err)
+	} else if sender != nil {
+		hub.SetPushPublisher(sender)
+		go sender.Run()
+	}
 	// services
 	emailService := services.NewEmailService()
 	authService := services.NewAuthService(userRepo, sessionRepo, emailService)
@@ -75,9 +86,10 @@ func NewApp(
 		fileStorage = minioStorage
 	}
 	return &App{
-		DB:     db,
-		Hub:    hub,
-		Config: cfg,
+		DB:        db,
+		Hub:       hub,
+		Config:    cfg,
+		PushStore: pushStore,
 
 		//repository
 		UserRepo:    userRepo,
@@ -92,7 +104,7 @@ func NewApp(
 		PlanService:        services.NewPlanService(planRepo, channelRepo, friendRepo, userRepo, hub),
 		MessageService:     services.NewMessageService(messageRepo, userRepo, channelRepo),
 		FriendService:      services.NewFriendService(userRepo, friendRepo),
-		ChannelService:     services.NewChannelService(db, channelRepo, userRepo),
+		ChannelService:     services.NewChannelService(db, channelRepo, userRepo, hub.PublishGroupInvitesChanged),
 		EmailService:       emailService,
 		AuthService:        authService,
 

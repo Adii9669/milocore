@@ -7,8 +7,6 @@ import (
 	"chat-server/internals/utils"
 	"errors"
 	"net/http"
-	"strconv"
-	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -16,7 +14,7 @@ import (
 
 type PaginatedMessageResponse struct {
 	Message    []dto.MessageResponse `json:"messages"`
-	NextCursor *time.Time            `json:"nextCursor"`
+	NextCursor *string               `json:"nextCursor"`
 	HasMore    bool                  `json:"hasMore"`
 }
 
@@ -36,19 +34,10 @@ func (h *Handler) GetChannelHistory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	limit := 50
-	if l := r.URL.Query().Get("limit"); l != "" {
-		if parsed, err := strconv.Atoi(l); err == nil {
-			limit = parsed
-		}
-	}
-
-	var cursor *time.Time
-	if cursorStr := r.URL.Query().Get("cursor"); cursorStr != "" {
-		parsed, err := time.Parse(time.RFC3339, cursorStr)
-		if err == nil {
-			cursor = &parsed
-		}
+	limit, cursor, err := historyQuery(r)
+	if err != nil {
+		http.Error(w, "invalid page cursor", http.StatusBadRequest)
+		return
 	}
 
 	messages, err := h.service.ChannelHistory(ctx, channelID, userID, limit, cursor)
@@ -60,15 +49,8 @@ func (h *Handler) GetChannelHistory(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	var nextCursor *time.Time
-	hasMore := false
-
-	if len(messages) == limit {
-		hasMore = true
-		oldest := messages[len(messages)-1]
-		nextCursor = &oldest.CreatedAt
-	}
-
+	hasMore := len(messages) == limit
+	nextCursor := pageCursor(messages, hasMore, r.URL.Query().Get("cursorFormat") == "stable")
 	w.Header().Set("Content-Type", "application/json")
 	utils.PrettyJSON(w,
 		PaginatedMessageResponse{
