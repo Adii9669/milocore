@@ -11,9 +11,8 @@ import (
 
 type SessionRepository interface {
 	Create(ctx context.Context, session *models.Session) error
-	FindByUserID(ctx context.Context, userID uuid.UUID) (*models.Session, error)
 	FindByTokenHash(ctx context.Context, hash string) (*models.Session, error)
-	DeleteByUserID(ctx context.Context, userID uuid.UUID) error
+	DeleteSession(ctx context.Context, userID, sessionID uuid.UUID) error
 	DeleteExpired(ctx context.Context) error
 }
 
@@ -26,17 +25,7 @@ func NewSessionRepository(db *gorm.DB) SessionRepository {
 }
 
 func (r *sessionRepository) Create(ctx context.Context, session *models.Session) error {
-	// delete any existing session for this user first — one session per user
-	r.db.WithContext(ctx).Where("user_id = ?", session.UserID).Delete(&models.Session{})
 	return r.db.WithContext(ctx).Create(session).Error
-}
-
-func (r *sessionRepository) FindByUserID(ctx context.Context, userID uuid.UUID) (*models.Session, error) {
-	var session models.Session
-	err := r.db.WithContext(ctx).
-		Where("user_id = ? AND expires_at > ?", userID, time.Now()).
-		First(&session).Error
-	return &session, err
 }
 
 // FindByTokenHash looks a session up by the hashed refresh token. This lets
@@ -50,9 +39,9 @@ func (r *sessionRepository) FindByTokenHash(ctx context.Context, hash string) (*
 	return &session, err
 }
 
-func (r *sessionRepository) DeleteByUserID(ctx context.Context, userID uuid.UUID) error {
+func (r *sessionRepository) DeleteSession(ctx context.Context, userID, sessionID uuid.UUID) error {
 	return r.db.WithContext(ctx).
-		Where("user_id = ?", userID).
+		Where("id = ? AND user_id = ?", sessionID, userID).
 		Delete(&models.Session{}).Error
 }
 

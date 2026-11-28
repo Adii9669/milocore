@@ -35,7 +35,7 @@ func (h *ChannelHandler) UpdateMember(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//3.Parse memberID from URL
-	memberIDParam := chi.URLParam(r, "memberID")
+	memberIDParam := chi.URLParam(r, "userID")
 	memberID, err := uuid.Parse(memberIDParam)
 	if err != nil {
 		http.Error(w, "Invalid user ID", http.StatusBadRequest)

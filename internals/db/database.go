@@ -43,6 +43,7 @@ func ConnectToDB() *gorm.DB {
 			&models.User{},
 			&models.Account{},
 			&models.Session{},
+			&models.PushDevice{},
 			&models.Channel{},
 			&models.Message{},
 			&models.MessageUserDeletion{},
@@ -53,6 +54,7 @@ func ConnectToDB() *gorm.DB {
 			&models.PlanPollVote{},
 			&models.Friend{},
 			&models.ChannelMember{},
+			&models.ChannelInvite{},
 		); err != nil {
 			log.Fatalf("Migration failed: %v", err)
 		}

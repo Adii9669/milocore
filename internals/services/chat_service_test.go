@@ -6,15 +6,14 @@ import (
 	"context"
 	"errors"
 	"testing"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
 
 type MockMessageRepo struct {
-	GetChannelMessageHistoryFn func(ctx context.Context, channelID uuid.UUID, limit int, cursor *time.Time) ([]models.Message, error)
-	GetDmMessageHistoryFn      func(ctx context.Context, userA, userB uuid.UUID, limit int, cursor *time.Time) ([]models.Message, error)
+	GetChannelMessageHistoryFn func(ctx context.Context, channelID uuid.UUID, limit int, cursor *repository.HistoryCursor) ([]models.Message, error)
+	GetDmMessageHistoryFn      func(ctx context.Context, userA, userB uuid.UUID, limit int, cursor *repository.HistoryCursor) ([]models.Message, error)
 	MarkDeliveredFn            func(ctx context.Context, messageID uuid.UUID) error
 	MarkReadFn                 func(ctx context.Context, userID, otherUserID uuid.UUID) error
 	SaveMessageFn              func(context.Context, *models.Message) error
@@ -53,7 +52,7 @@ func (m *MockMessageRepo) GetChannelMessageHistory(
 	ctx context.Context,
 	channelID uuid.UUID,
 	limit int,
-	cursor *time.Time,
+	cursor *repository.HistoryCursor,
 ) ([]models.Message, error) {
 
 	if m.GetChannelMessageHistoryFn != nil {
@@ -61,7 +60,7 @@ func (m *MockMessageRepo) GetChannelMessageHistory(
 	}
 	return nil, nil
 }
-func (m *MockMessageRepo) GetDmMessageHistory(ctx context.Context, userA, userB uuid.UUID, limit int, cursor *time.Time) ([]models.Message, error) {
+func (m *MockMessageRepo) GetDmMessageHistory(ctx context.Context, userA, userB uuid.UUID, limit int, cursor *repository.HistoryCursor) ([]models.Message, error) {
 	if m.GetDmMessageHistoryFn != nil {
 		return m.GetDmMessageHistoryFn(ctx, userA, userB, limit, cursor)
 	}
@@ -72,7 +71,7 @@ func (m *MockMessageRepo) GetDmMessageHistory(ctx context.Context, userA, userB 
 // MessageDeletionRepository so service tests can exercise the user-aware path.
 type MockDeletionMessageRepo struct {
 	MockMessageRepo
-	GetChannelMessageHistoryForUserFn func(context.Context, uuid.UUID, uuid.UUID, int, *time.Time) ([]models.Message, error)
+	GetChannelMessageHistoryForUserFn func(context.Context, uuid.UUID, uuid.UUID, int, *repository.HistoryCursor) ([]models.Message, error)
 }
 
 func (m *MockDeletionMessageRepo) HideMessageForUser(context.Context, uuid.UUID, uuid.UUID) error {
@@ -87,11 +86,11 @@ func (m *MockDeletionMessageRepo) DeleteMessage(context.Context, uuid.UUID) erro
 	return nil
 }
 
-func (m *MockDeletionMessageRepo) GetDmMessageHistoryForUser(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, int, *time.Time) ([]models.Message, error) {
+func (m *MockDeletionMessageRepo) GetDmMessageHistoryForUser(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, int, *repository.HistoryCursor) ([]models.Message, error) {
 	return nil, nil
 }
 
-func (m *MockDeletionMessageRepo) GetChannelMessageHistoryForUser(ctx context.Context, channelID, currentUser uuid.UUID, limit int, cursor *time.Time) ([]models.Message, error) {
+func (m *MockDeletionMessageRepo) GetChannelMessageHistoryForUser(ctx context.Context, channelID, currentUser uuid.UUID, limit int, cursor *repository.HistoryCursor) ([]models.Message, error) {
 	if m.GetChannelMessageHistoryForUserFn != nil {
 		return m.GetChannelMessageHistoryForUserFn(ctx, channelID, currentUser, limit, cursor)
 	}
@@ -105,7 +104,7 @@ func TestChannelHistory_Success(t *testing.T) {
 	userID := uuid.New()
 
 	mockRepo := &MockMessageRepo{
-		GetChannelMessageHistoryFn: func(ctx context.Context, channelID uuid.UUID, limit int, cursor *time.Time) ([]models.Message, error) {
+		GetChannelMessageHistoryFn: func(ctx context.Context, channelID uuid.UUID, limit int, cursor *repository.HistoryCursor) ([]models.Message, error) {
 
 			// 🔥 important: verify limit logic
 			assert.Equal(t, 50, limit)
@@ -132,7 +131,7 @@ func TestChannelHistory_Faliure(t *testing.T) {
 	ctx := context.Background()
 
 	mockRepo := &MockMessageRepo{
-		GetChannelMessageHistoryFn: func(ctx context.Context, channelID uuid.UUID, limit int, cursor *time.Time) ([]models.Message, error) {
+		GetChannelMessageHistoryFn: func(ctx context.Context, channelID uuid.UUID, limit int, cursor *repository.HistoryCursor) ([]models.Message, error) {
 			return nil, errors.New("db error")
 		},
 	}
@@ -148,7 +147,7 @@ func TestChannelHistory_AccessDenied(t *testing.T) {
 	ctx := context.Background()
 
 	mockRepo := &MockDeletionMessageRepo{
-		GetChannelMessageHistoryForUserFn: func(context.Context, uuid.UUID, uuid.UUID, int, *time.Time) ([]models.Message, error) {
+		GetChannelMessageHistoryForUserFn: func(context.Context, uuid.UUID, uuid.UUID, int, *repository.HistoryCursor) ([]models.Message, error) {
 			return nil, repository.ErrChannelAccessDenied
 		},
 	}
@@ -186,7 +185,7 @@ func TestDmHistory_Success(t *testing.T) {
 	userB := uuid.New()
 
 	mockRepo := &MockMessageRepo{
-		GetDmMessageHistoryFn: func(ctx context.Context, a, b uuid.UUID, limit int, cursor *time.Time) ([]models.Message, error) {
+		GetDmMessageHistoryFn: func(ctx context.Context, a, b uuid.UUID, limit int, cursor *repository.HistoryCursor) ([]models.Message, error) {
 
 			assert.Equal(t, 50, limit) // limit correction
 
@@ -214,7 +213,7 @@ func TestDMHistory_Faliure(t *testing.T) {
 	userB := uuid.New()
 
 	mockRepo := &MockMessageRepo{
-		GetDmMessageHistoryFn: func(ctx context.Context, a, b uuid.UUID, limit int, cursor *time.Time) ([]models.Message, error) {
+		GetDmMessageHistoryFn: func(ctx context.Context, a, b uuid.UUID, limit int, cursor *repository.HistoryCursor) ([]models.Message, error) {
 			return nil, errors.New("db error")
 		},
 	}

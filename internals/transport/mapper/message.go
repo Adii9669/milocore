@@ -18,11 +18,18 @@ func ToDMMessageResponse(msg *models.Message, currentUser uuid.UUID) dto.Message
 		fileURL = "/api/files/" + msg.ID.String() + "/download"
 		previewURL = "/api/files/" + msg.ID.String() + "/preview"
 	}
+	status := "sent"
+	if msg.Read {
+		status = "read"
+	} else if msg.Delivered {
+		status = "delivered"
+	}
 	return dto.MessageResponse{
 		ID:        msg.ID.String(),
 		Type:      "dm",
 		Content:   content,
 		IsMine:    &isMine,
+		Status:    status,
 		CreatedAt: msg.CreatedAt,
 		FileURL:   optionalString(fileURL), FilePreviewURL: optionalString(previewURL), FileName: msg.FileName, FileSize: msg.FileSize, MimeType: msg.MimeType,
 		Sender: &dto.SenderDTO{

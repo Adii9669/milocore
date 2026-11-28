@@ -60,6 +60,8 @@ type FriendService interface {
 		reqType string,
 	) ([]dto.FriendResponse, error)
 
+	CancelRequest(ctx context.Context, senderID, recipientID uuid.UUID) error
+
 	RejectRequest(
 		ctx context.Context,
 		requesterID uuid.UUID,
@@ -292,5 +294,21 @@ func (s *friendService) RejectRequest(
 		return errors.New("sender cannot reject")
 	}
 
-	return s.frndRepo.Delete(ctx, low, high)
+	removed, err := s.frndRepo.DeletePending(ctx, low, high, req.RequestedBy)
+	if err == nil && !removed {
+		return ErrRequestNotFound
+	}
+	return err
+}
+
+func (s *friendService) CancelRequest(ctx context.Context, senderID, recipientID uuid.UUID) error {
+	if senderID == recipientID {
+		return ErrInvalidRequest
+	}
+	low, high := normalizePair(senderID, recipientID)
+	removed, err := s.frndRepo.DeletePending(ctx, low, high, senderID)
+	if err == nil && !removed {
+		return ErrRequestNotFound
+	}
+	return err
 }

@@ -2,14 +2,17 @@ package router
 
 import (
 	"chat-server/internals/app"
+	"chat-server/internals/config"
 	"chat-server/internals/handlers/auth"
 	"chat-server/internals/handlers/channels"
 	"chat-server/internals/handlers/chathistory"
 	"chat-server/internals/handlers/files"
 	"chat-server/internals/handlers/friends"
+	"chat-server/internals/handlers/invites"
 	"chat-server/internals/handlers/messages"
 	"chat-server/internals/handlers/plans"
 	"chat-server/internals/middleware"
+	"chat-server/internals/push"
 	"chat-server/internals/websockets"
 	"encoding/json"
 	"log"
@@ -73,13 +76,16 @@ func SetUpRouter(app *app.App) http.Handler {
 	--------------------------------------------------------- */
 
 	// handlers for creating the instace for the repository for using
-	channelHandler := channels.NewChannelHandler(app.ChannelService)
+	channelHandler := channels.NewChannelHandler(app.ChannelService, app.Hub)
 	authHandler := auth.NewAuthHandler(app.UserRepo)
 	frndHandler := friends.NewFriendHandler(app.FriendService)
 	chathistoryHandler := chathistory.NewHandler(app.ChatHistoryService)
 	fileHandler := files.NewFileHandler(app.FileStorage, app.MessageService, app.Hub)
 	messageHandler := messages.NewHandler(app.MessageService, app.FileStorage, app.Hub)
 	planHandler := plans.NewHandler(app.PlanService)
+	inviteHandler := invites.Handler{DB: app.DB, Limits: invites.NewLimits(), Publish: app.Hub.PublishGroupInvitesChanged}
+	groupInvites := config.GroupInvitesEnabled()
+	pushHandler := push.NewHandler(app.PushStore)
 
 	//Protected Routes
 	r.Route("/api", func(r chi.Router) {
@@ -92,6 +98,10 @@ func SetUpRouter(app *app.App) http.Handler {
 			r.Route("/{channelID}", func(r chi.Router) {
 				r.Delete("/", channelHandler.DeleteChannel)
 				r.Put("/", channelHandler.RenameChannel)
+				if groupInvites {
+					r.Get("/invites", inviteHandler.Pending)
+					r.Post("/invites", inviteHandler.Create)
+				}
 
 				r.Route("/members", func(r chi.Router) {
 					r.Get("/", channelHandler.GetMembers)
@@ -109,6 +119,13 @@ func SetUpRouter(app *app.App) http.Handler {
 		// User
 		r.Get("/me", authHandler.Me)
 		r.Get("/users", authHandler.GetUsers)
+		if groupInvites {
+			r.Post("/users/lookup", inviteHandler.Lookup)
+			r.Get("/me/invites", inviteHandler.Inbox)
+			r.Post("/invites/{inviteID}/accept", inviteHandler.Accept)
+			r.Post("/invites/{inviteID}/decline", inviteHandler.Decline)
+			r.Delete("/invites/{inviteID}", inviteHandler.Cancel)
+		}
 
 		// Friend
 		r.Get("/friends", frndHandler.GetFriends)
@@ -119,6 +136,7 @@ func SetUpRouter(app *app.App) http.Handler {
 
 			r.Route("/{requestID}", func(r chi.Router) {
 				r.Put("/accept", frndHandler.AcceptRequest)
+				r.Delete("/outgoing", frndHandler.CancelRequest)
 				r.Delete("/", frndHandler.RejectRequest)
 			})
 		})
@@ -126,6 +144,8 @@ func SetUpRouter(app *app.App) http.Handler {
 		r.Delete("/friends/{friendID}", frndHandler.RemoveFriend)
 
 		// Chat
+		r.Get("/conversations", chathistory.ListSummaries(chathistory.SummaryRepository{DB: app.DB}))
+		r.Post("/messages", messageHandler.Send)
 		r.Delete("/messages/{messageID}", messageHandler.Delete)
 		r.Post("/chats/channel/{channelId}/plans", planHandler.CreateChannelPlan)
 		r.Get("/chats/channel/{channelId}/plans", planHandler.ListChannelPlans)
@@ -142,13 +162,17 @@ func SetUpRouter(app *app.App) http.Handler {
 		r.Put("/plans/{planId}/response", planHandler.SetResponse)
 		r.Get("/plans/{planId}/participants", planHandler.GetParticipants)
 		r.Get("/chats/channel/{channelId}", chathistoryHandler.GetChannelHistory)
+		r.Put("/chats/channel/{channelId}/read", chathistory.UpdateChannelReadMarker(chathistory.SummaryRepository{DB: app.DB}))
 		r.Get("/chats/dm/{userId}", chathistoryHandler.GetDmHistory)
 
 		// r.Poat
 		// WebSocket
 		r.Get("/ws", func(w http.ResponseWriter, r *http.Request) {
-			websockets.ServeWS(app.Hub, app.MessageService, w, r)
+			websockets.ServeWS(app.Hub, app.MessageService, app.ChannelRepo, w, r)
 		})
+
+		r.Post("/devices/push-token", pushHandler.Register)
+		r.Delete("/devices/push-token", pushHandler.Remove)
 
 		// Logout
 		r.Post("/logout", auth.LogoutHandler(app.AuthService))

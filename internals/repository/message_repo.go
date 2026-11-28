@@ -16,6 +16,21 @@ import (
 // 403 instead of leaking whether the channel exists.
 var ErrChannelAccessDenied = errors.New("channel access denied")
 
+type HistoryCursor struct {
+	At time.Time
+	ID uuid.UUID
+}
+
+func beforeHistoryCursor(query *gorm.DB, cursor *HistoryCursor) *gorm.DB {
+	if cursor == nil {
+		return query
+	}
+	if cursor.ID == uuid.Nil {
+		return query.Where("messages.created_at < ?", cursor.At)
+	}
+	return query.Where("(messages.created_at, messages.id) < (?, ?)", cursor.At, cursor.ID)
+}
+
 type MessageRepository interface {
 	SaveMessage(context.Context, *models.Message) error
 	FindMessageByID(context.Context, uuid.UUID) (*models.Message, error)
@@ -25,13 +40,13 @@ type MessageRepository interface {
 		userA uuid.UUID,
 		userB uuid.UUID,
 		limit int,
-		cursor *time.Time,
+		cursor *HistoryCursor,
 	) ([]models.Message, error)
 	GetChannelMessageHistory(
 		ctx context.Context,
 		channelID uuid.UUID,
 		limit int,
-		cursor *time.Time,
+		cursor *HistoryCursor,
 	) ([]models.Message, error)
 	MarkDelivered(ctx context.Context, messageID uuid.UUID) error
 	MarkRead(ctx context.Context, userID, otherUserID uuid.UUID) error
@@ -42,8 +57,8 @@ type MessageDeletionRepository interface {
 	HideMessageForUser(context.Context, uuid.UUID, uuid.UUID) error
 	IsMessageHiddenForUser(context.Context, uuid.UUID, uuid.UUID) (bool, error)
 	DeleteMessage(context.Context, uuid.UUID) error
-	GetDmMessageHistoryForUser(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, int, *time.Time) ([]models.Message, error)
-	GetChannelMessageHistoryForUser(context.Context, uuid.UUID, uuid.UUID, int, *time.Time) ([]models.Message, error)
+	GetDmMessageHistoryForUser(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, int, *HistoryCursor) ([]models.Message, error)
+	GetChannelMessageHistoryForUser(context.Context, uuid.UUID, uuid.UUID, int, *HistoryCursor) ([]models.Message, error)
 }
 
 type messageRepository struct {
@@ -71,7 +86,7 @@ func (r *messageRepository) GetChannelMessageHistory(
 	ctx context.Context,
 	channelID uuid.UUID,
 	limit int,
-	cursor *time.Time,
+	cursor *HistoryCursor,
 ) ([]models.Message, error) {
 
 	var messages []models.Message
@@ -83,12 +98,10 @@ func (r *messageRepository) GetChannelMessageHistory(
 		Joins("Sender").
 		Where("messages.channel_id = ?", channelID)
 
-	if cursor != nil {
-		query = query.Where("messages.created_at < ?", *cursor)
-	}
+	query = beforeHistoryCursor(query, cursor)
 
 	err := query.
-		Order("messages.created_at DESC").
+		Order("messages.created_at DESC, messages.id DESC").
 		Limit(limit).
 		Find(&messages).Error
 	if err != nil {
@@ -113,7 +126,7 @@ func (r *messageRepository) GetDmMessageHistory(
 	userA uuid.UUID,
 	userB uuid.UUID,
 	limit int,
-	cursor *time.Time,
+	cursor *HistoryCursor,
 ) ([]models.Message, error) {
 	var messages []models.Message
 
@@ -126,12 +139,10 @@ func (r *messageRepository) GetDmMessageHistory(
 			userB, userA,
 		)
 
-	if cursor != nil {
-		query = query.Where("messages.created_at < ?", *cursor)
-	}
+	query = beforeHistoryCursor(query, cursor)
 
 	err := query.
-		Order("messages.created_at DESC").
+		Order("messages.created_at DESC, messages.id DESC").
 		Limit(limit).
 		Find(&messages).Error
 
@@ -143,6 +154,19 @@ func (r *messageRepository) GetDmMessageHistory(
 	slices.Reverse(messages)
 
 	return messages, nil
+}
+
+// UpdateDMReceipt records a monotonic receipt for the authenticated recipient.
+func (r *messageRepository) UpdateDMReceipt(ctx context.Context, id, recipient uuid.UUID, read bool) (bool, error) {
+	query := r.db.WithContext(ctx).Model(&models.Message{}).
+		Where("id = ? AND receiver_id = ? AND channel_id IS NULL", id, recipient)
+	var result *gorm.DB
+	if read {
+		result = query.Where("read = ?", false).Updates(map[string]any{"read": true, "delivered": true})
+	} else {
+		result = query.Where("delivered = ? AND read = ?", false, false).Update("delivered", true)
+	}
+	return result.RowsAffected != 0, result.Error
 }
 
 func (r *messageRepository) MarkDelivered(ctx context.Context, messageID uuid.UUID) error {
@@ -180,16 +204,14 @@ func (r *messageRepository) DeleteMessage(ctx context.Context, messageID uuid.UU
 	})
 }
 
-func (r *messageRepository) GetDmMessageHistoryForUser(ctx context.Context, userA, userB, currentUser uuid.UUID, limit int, cursor *time.Time) ([]models.Message, error) {
+func (r *messageRepository) GetDmMessageHistoryForUser(ctx context.Context, userA, userB, currentUser uuid.UUID, limit int, cursor *HistoryCursor) ([]models.Message, error) {
 	var messages []models.Message
 	query := r.db.WithContext(ctx).Joins("Sender").Where(
 		"((messages.sender_id = ? AND messages.receiver_id = ?) OR (messages.sender_id = ? AND messages.receiver_id = ?)) AND NOT EXISTS (SELECT 1 FROM message_user_deletions mud WHERE mud.message_id = messages.id AND mud.user_id = ?)",
 		userA, userB, userB, userA, currentUser,
 	)
-	if cursor != nil {
-		query = query.Where("messages.created_at < ?", *cursor)
-	}
-	err := query.Order("messages.created_at DESC").Limit(limit).Find(&messages).Error
+	query = beforeHistoryCursor(query, cursor)
+	err := query.Order("messages.created_at DESC, messages.id DESC").Limit(limit).Find(&messages).Error
 	if err != nil {
 		return nil, err
 	}
@@ -197,7 +219,7 @@ func (r *messageRepository) GetDmMessageHistoryForUser(ctx context.Context, user
 	return messages, nil
 }
 
-func (r *messageRepository) GetChannelMessageHistoryForUser(ctx context.Context, channelID, currentUser uuid.UUID, limit int, cursor *time.Time) ([]models.Message, error) {
+func (r *messageRepository) GetChannelMessageHistoryForUser(ctx context.Context, channelID, currentUser uuid.UUID, limit int, cursor *HistoryCursor) ([]models.Message, error) {
 	var messages []models.Message
 
 	// One SELECT:
@@ -211,11 +233,9 @@ func (r *messageRepository) GetChannelMessageHistoryForUser(ctx context.Context,
 		Where("messages.channel_id = ?", channelID).
 		Where("NOT EXISTS (SELECT 1 FROM message_user_deletions mud WHERE mud.message_id = messages.id AND mud.user_id = ?)", currentUser)
 
-	if cursor != nil {
-		query = query.Where("messages.created_at < ?", *cursor)
-	}
+	query = beforeHistoryCursor(query, cursor)
 
-	err := query.Order("messages.created_at DESC").Limit(limit).Find(&messages).Error
+	err := query.Order("messages.created_at DESC, messages.id DESC").Limit(limit).Find(&messages).Error
 	if err != nil {
 		return nil, err
 	}

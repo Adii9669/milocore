@@ -7,7 +7,6 @@ import (
 	"chat-server/internals/transport/mapper"
 	"context"
 	"errors"
-	"time"
 
 	"github.com/google/uuid"
 )
@@ -22,7 +21,7 @@ type ChatHistroyService interface {
 		channelID uuid.UUID,
 		currentUser uuid.UUID,
 		limit int,
-		cursor *time.Time,
+		cursor *repository.HistoryCursor,
 	) ([]dto.MessageResponse, error)
 
 	DmHistory(
@@ -30,7 +29,7 @@ type ChatHistroyService interface {
 		userA uuid.UUID,
 		userB uuid.UUID,
 		limit int,
-		cursor *time.Time,
+		cursor *repository.HistoryCursor,
 	) ([]dto.MessageResponse, error)
 }
 
@@ -49,10 +48,10 @@ func (s *chathistroyservice) ChannelHistory(
 	channelID uuid.UUID,
 	currentUser uuid.UUID,
 	limit int,
-	cursor *time.Time,
+	cursor *repository.HistoryCursor,
 ) ([]dto.MessageResponse, error) {
 
-	if limit <= 0 || limit >= 100 {
+	if limit <= 0 || limit > 100 {
 		limit = 50
 	}
 	var messages []models.Message
@@ -83,7 +82,7 @@ func (s *chathistroyservice) DmHistory(
 	userA uuid.UUID,
 	userB uuid.UUID,
 	limit int,
-	cursor *time.Time,
+	cursor *repository.HistoryCursor,
 ) ([]dto.MessageResponse, error) {
 
 	if userA == uuid.Nil || userB == uuid.Nil {

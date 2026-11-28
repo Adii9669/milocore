@@ -20,6 +20,7 @@ type PlanEvent struct {
 	Event        string
 	EventID      uuid.UUID
 	PlanID       uuid.UUID
+	CreatorID    uuid.UUID `json:"-"`
 	ChannelID    *uuid.UUID
 	DMUserLowID  *uuid.UUID
 	DMUserHighID *uuid.UUID

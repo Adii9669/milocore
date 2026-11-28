@@ -34,6 +34,10 @@ func jwtkey() ([]byte, error) {
 
 // GenerateAccessToken — short lived, 15 minutes
 func GenerateAccessToken(userId uuid.UUID, username string) (string, error) {
+	return GenerateSessionAccessToken(userId, username, uuid.Nil)
+}
+
+func GenerateSessionAccessToken(userID uuid.UUID, username string, sessionID uuid.UUID) (string, error) {
 	key, err := jwtkey()
 	if err != nil {
 		return "", err
@@ -43,10 +47,13 @@ func GenerateAccessToken(userId uuid.UUID, username string) (string, error) {
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(AccessTokenExpiry)),
 		},
-		UserID:   userId.String(),
+		UserID:   userID.String(),
 		Username: username,
 	}
 
+	if sessionID != uuid.Nil {
+		claims.ID = sessionID.String()
+	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
 	return token.SignedString(key)

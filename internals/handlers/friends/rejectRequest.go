@@ -2,7 +2,9 @@ package friends
 
 import (
 	"chat-server/internals/middleware"
+	"chat-server/internals/services"
 	"chat-server/internals/utils"
+	"errors"
 	"log"
 	"net/http"
 
@@ -38,4 +40,27 @@ func (h *FriendHandler) RejectRequest(w http.ResponseWriter, r *http.Request) {
 	utils.PrettyJSON(w, map[string]string{
 		"success": "true",
 	})
+}
+
+func (h *FriendHandler) CancelRequest(w http.ResponseWriter, r *http.Request) {
+	sender, err := middleware.GetUserIDFromContext(r.Context())
+	if err != nil {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	recipient, err := uuid.Parse(chi.URLParam(r, "requestID"))
+	if err != nil || recipient == uuid.Nil || recipient == sender {
+		http.Error(w, "invalid request ID", http.StatusBadRequest)
+		return
+	}
+	err = h.friendService.CancelRequest(r.Context(), sender, recipient)
+	if errors.Is(err, services.ErrRequestNotFound) {
+		http.Error(w, "outgoing pending request not found", http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		http.Error(w, "could not cancel the request", http.StatusServiceUnavailable)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }

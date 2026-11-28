@@ -2,16 +2,24 @@ package websockets
 
 import (
 	"chat-server/internals/events"
+	"encoding/json"
 	"log"
 
 	"github.com/google/uuid"
 )
 
 // here in struct means we are defining the type of the channels how it going to be there name and type
+type pushPublisher interface {
+	Message(events.MessageEvent)
+	Plan(events.PlanEvent)
+}
+
 type Hub struct {
+	push       pushPublisher
 	clients    map[*Client]bool //every websockets connections
 	register   chan *Client
 	unregister chan *Client
+	roomAction chan func()
 
 	users    map[uuid.UUID]map[*Client]bool //set of Clients connections
 	channels map[uuid.UUID]map[*Client]bool
@@ -33,6 +41,7 @@ func NewHub() *Hub {
 		clients:    make(map[*Client]bool),
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
+		roomAction: make(chan func()),
 
 		users:    make(map[uuid.UUID]map[*Client]bool),
 		channels: make(map[uuid.UUID]map[*Client]bool),
@@ -57,6 +66,9 @@ func (h *Hub) PublishPlanEvent(event events.PlanEvent) {
 	}
 	h.planEvent <- event
 }
+
+// SetPushPublisher is called during startup, before Run begins.
+func (h *Hub) SetPushPublisher(publisher pushPublisher) { h.push = publisher }
 
 func (h *Hub) Run() {
 	for {
@@ -84,12 +96,20 @@ func (h *Hub) Run() {
 			)
 
 			//case to handle the mssages
+		case action := <-h.roomAction:
+			action()
 		case msg := <-h.route:
 			h.handleRouteMessage(msg)
+			if h.push != nil {
+				h.push.Message(msg)
+			}
 		case event := <-h.deletion:
 			h.handleRouteMessageDeletion(event)
 		case event := <-h.planEvent:
 			h.handleRoutePlanEvent(event)
+			if h.push != nil {
+				h.push.Plan(event)
+			}
 
 			//case to handle the broadcast
 		case data := <-h.broadcast:
@@ -138,4 +158,40 @@ func (h *Hub) handleUnregister(client *Client) {
 		}
 	}
 
+}
+
+// RevokeChannel removes all sockets for a removed member. A nil user revokes the entire channel.
+func (h *Hub) RevokeChannel(channelID, userID uuid.UUID) {
+	if h == nil {
+		return
+	}
+	h.roomAction <- func() {
+		for client := range h.channels[channelID] {
+			if userID == uuid.Nil || client.userID == userID {
+				h.leaveChannel(client, channelID)
+				payload, _ := json.Marshal(WSEvent{Event: "channel.join_denied", Data: map[string]string{"channelId": channelID.String()}})
+				h.sendToClient(client, payload)
+			}
+		}
+	}
+}
+
+// PublishGroupInvitesChanged sends an invalidation to the invite parties and channel managers.
+func (h *Hub) PublishGroupInvitesChanged(channel uuid.UUID, users ...uuid.UUID) {
+	if h == nil {
+		return
+	}
+	payload, _ := json.Marshal(WSEvent{Event: "group_invites.changed", Data: map[string]string{"channelId": channel.String()}})
+	h.roomAction <- func() {
+		seen := make(map[uuid.UUID]bool)
+		for _, user := range users {
+			if seen[user] {
+				continue
+			}
+			seen[user] = true
+			for client := range h.users[user] {
+				h.sendToClient(client, payload)
+			}
+		}
+	}
 }

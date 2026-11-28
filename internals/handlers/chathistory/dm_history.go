@@ -4,8 +4,6 @@ import (
 	"chat-server/internals/middleware"
 	"chat-server/internals/utils"
 	"net/http"
-	"strconv"
-	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -27,25 +25,11 @@ func (h *Handler) GetDmHistory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	limit := 50
-	if l := r.URL.Query().Get("limit"); l != "" {
-		if parsed, err := strconv.Atoi(l); err == nil {
-			limit = parsed
-		}
+	limit, cursor, err := historyQuery(r)
+	if err != nil {
+		http.Error(w, "invalid page cursor", http.StatusBadRequest)
+		return
 	}
-
-	var cursor *time.Time
-	if cursorStr := r.URL.Query().Get("cursor"); cursorStr != "" {
-		parsed, err := time.Parse(time.RFC3339, cursorStr)
-		if err == nil {
-			cursor = &parsed
-		}
-	}
-
-	// log.Printf("otheruser count %d", len(otherUserID))
-	// log.Printf("auth count %d", len(authUserID))
-	// log.Printf("userA %s", otherUserID)
-	// log.Printf("userB %s", authUserID)
 
 	messages, err := h.service.DmHistory(
 		ctx,
@@ -59,14 +43,8 @@ func (h *Handler) GetDmHistory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var nextCursor *time.Time
-	hasMore := false
-
-	if len(messages) == limit {
-		hasMore = true
-		oldest := messages[len(messages)-1]
-		nextCursor = &oldest.CreatedAt
-	}
+	hasMore := len(messages) == limit
+	nextCursor := pageCursor(messages, hasMore, r.URL.Query().Get("cursorFormat") == "stable")
 	w.Header().Set("Content-Type", "application/json")
 	utils.PrettyJSON(w, PaginatedMessageResponse{
 		Message:    messages,

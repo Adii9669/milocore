@@ -50,5 +50,6 @@ func (h *ChannelHandler) RemoveMember(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.hub.RevokeChannel(channelID, memberID)
 	w.WriteHeader(http.StatusNoContent)
 }

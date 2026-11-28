@@ -44,6 +44,8 @@ func (h *ChannelHandler) DeleteChannel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.hub.RevokeChannel(channelID, uuid.Nil)
+
 	// 5. Success
 	w.Header().Set("Content-Type", "application/json")
 	utils.PrettyJSON(w, map[string]any{"success": true})

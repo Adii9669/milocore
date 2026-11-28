@@ -55,7 +55,7 @@ func (h *Hub) broadcastTyping(sender *Client, msg WSMessage) {
 
 	//validate the channels exists
 	channelClients, ok := h.channels[msg.ChannelID]
-	if !ok {
+	if !ok || !channelClients[sender] {
 		return
 	}
 
@@ -69,17 +69,23 @@ func (h *Hub) broadcastTyping(sender *Client, msg WSMessage) {
 		if c == sender {
 			continue
 		}
-		//non blocking send
-		select {
-		case c.send <- payload:
-		default:
-			close(c.send)
-			delete(h.clients, c)
-		}
+		h.sendToClient(c, payload)
+	}
+}
+
+func (h *Hub) sendToClient(client *Client, payload []byte) {
+	select {
+	case client.send <- payload:
+	default:
+		h.handleUnregister(client)
 	}
 }
 
 func (h *Hub) sendMessageStatus(userID, msgID uuid.UUID, status string) {
+	h.roomAction <- func() { h.routeMessageStatus(userID, msgID, status) }
+}
+
+func (h *Hub) routeMessageStatus(userID, msgID uuid.UUID, status string) {
 
 	clients, ok := h.users[userID]
 	if !ok {
@@ -99,10 +105,6 @@ func (h *Hub) sendMessageStatus(userID, msgID uuid.UUID, status string) {
 
 	for client := range clients {
 
-		select {
-		case client.send <- payload:
-		default:
-			h.unregister <- client
-		}
+		h.sendToClient(client, payload)
 	}
 }

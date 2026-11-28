@@ -1,8 +1,8 @@
 package websockets
 
 import (
+	"chat-server/internals/middleware"
 	"chat-server/internals/services"
-	"chat-server/internals/utils"
 	"chat-server/internals/workers"
 	"context"
 	"log"
@@ -14,33 +14,30 @@ import (
 
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
-		return true
+		switch r.Header.Get("Origin") {
+		case "", "http://localhost:3000", "https://milonext.vercel.app", "https://milonext.onrender.com":
+			return true
+		default:
+			return false
+		}
 	},
+}
+
+type ChannelMembership interface {
+	IsMember(ctx context.Context, channelID, userID uuid.UUID) (bool, error)
 }
 
 func ServeWS(
 	hub *Hub,
 	messageservice services.MessageService,
+	membership ChannelMembership,
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
 
-	//get user Id
-	cookie, err := r.Cookie("access_token")
+	userID, err := middleware.GetUserIDFromContext(r.Context())
 	if err != nil {
-		http.Error(w, "Invalid Token", http.StatusBadRequest)
-		return
-	}
-
-	claims, err := utils.ValidateToken(cookie.Value)
-	if err != nil {
-		http.Error(w, "userId is required", http.StatusBadRequest)
-		return
-	}
-
-	userID, err := uuid.Parse(claims.UserID)
-	if err != nil {
-		http.Error(w, "invalid userID", http.StatusBadRequest)
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
@@ -55,6 +52,7 @@ func ServeWS(
 
 	//create the client
 	client := NewClient(conn, userID, hub, ctx, cancel, messageservice)
+	client.membership = membership
 
 	//register the client in the hub
 	hub.register <- client

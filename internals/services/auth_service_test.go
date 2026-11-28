@@ -142,7 +142,7 @@ func (m *MockSessionRepo) FindByTokenHash(ctx context.Context, hash string) (*mo
 	return nil, errors.New("not found")
 }
 
-func (m *MockSessionRepo) DeleteByUserID(ctx context.Context, id uuid.UUID) error {
+func (m *MockSessionRepo) DeleteSession(ctx context.Context, id, sessionID uuid.UUID) error {
 	if m.DeleteFn != nil {
 		return m.DeleteFn(ctx, id)
 	}

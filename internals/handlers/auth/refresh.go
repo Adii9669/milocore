@@ -3,6 +3,7 @@ package auth
 import (
 	"chat-server/internals/services"
 	"chat-server/internals/utils"
+	"errors"
 	"net/http"
 )
 
@@ -22,7 +23,11 @@ func RefreshHandler(authService *services.AuthService) http.HandlerFunc {
 		//    token may already be expired/removed, so it cannot be used here.
 		accessToken, err := authService.Refresh(ctx, cookie.Value)
 		if err != nil {
-			writeJSONError(w, "Invalid refresh token", http.StatusUnauthorized)
+			if errors.Is(err, services.ErrInvalidRefreshToken) {
+				writeJSONError(w, "Invalid refresh token", http.StatusUnauthorized)
+			} else {
+				writeJSONError(w, "Session refresh temporarily unavailable", http.StatusServiceUnavailable)
+			}
 			return
 		}
 

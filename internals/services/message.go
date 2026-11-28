@@ -33,6 +33,7 @@ type MessageService interface {
 	CreateAttachmentMessage(ctx context.Context, senderID uuid.UUID, target IncomingMessage, file AttachmentInput) (events.MessageEvent, error)
 	GetAttachment(ctx context.Context, requesterID, messageID uuid.UUID) (*models.Message, error)
 	DeleteMessage(ctx context.Context, requesterID, messageID uuid.UUID, scope string) (events.MessageDeletionEvent, *string, error)
+	RecordDMReceipt(ctx context.Context, messageID, recipient uuid.UUID, read bool) (uuid.UUID, error)
 	MarkDelivered(
 		ctx context.Context,
 		msgID uuid.UUID,
@@ -367,4 +368,25 @@ func (s *messageService) MarkDelivered(ctx context.Context, messageID uuid.UUID)
 
 func (s *messageService) MarkRead(ctx context.Context, userID, OtherUserID uuid.UUID) error {
 	return s.messageRepo.MarkRead(ctx, userID, OtherUserID)
+}
+
+func (s *messageService) RecordDMReceipt(ctx context.Context, messageID, recipient uuid.UUID, read bool) (uuid.UUID, error) {
+	message, err := s.messageRepo.FindMessageByID(ctx, messageID)
+	if err != nil {
+		return uuid.Nil, err
+	}
+	if message == nil || message.ChannelID != nil || message.ReceiverID == nil || *message.ReceiverID != recipient {
+		return uuid.Nil, errors.New("not authorized to record this receipt")
+	}
+	store, ok := s.messageRepo.(interface {
+		UpdateDMReceipt(context.Context, uuid.UUID, uuid.UUID, bool) (bool, error)
+	})
+	if !ok {
+		return uuid.Nil, errors.New("message receipts are unavailable")
+	}
+	changed, err := store.UpdateDMReceipt(ctx, messageID, recipient, read)
+	if err != nil || !changed {
+		return uuid.Nil, err
+	}
+	return message.SenderID, nil
 }

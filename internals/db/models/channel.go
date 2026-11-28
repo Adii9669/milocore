@@ -38,9 +38,11 @@ type ChannelMember struct {
 	ChannelID uuid.UUID `gorm:"type:uuid;primaryKey"`
 	UserID    uuid.UUID `gorm:"type:uuid;primaryKey"`
 
-	Role     ChannelRole `gorm:"type:varchar(20);not null;default:member"`
-	JoinedAt time.Time   `gorm:"autoCreateTime"`
-	MutedTil *time.Time
+	Role              ChannelRole `gorm:"type:varchar(20);not null;default:member"`
+	JoinedAt          time.Time   `gorm:"autoCreateTime"`
+	MutedTil          *time.Time
+	LastReadAt        *time.Time
+	LastReadMessageID *uuid.UUID `gorm:"type:uuid"`
 
 	Channel Channel `gorm:"foreignKey:ChannelID"`
 	User    User    `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE"`

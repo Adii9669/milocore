@@ -15,6 +15,7 @@ type FriendRepository interface {
 	Update(ctx context.Context, friend *models.Friend) error
 	GetAcceptedByUser(ctx context.Context, userID uuid.UUID) ([]models.Friend, error)
 	Delete(ctx context.Context, low, high uuid.UUID) error
+	DeletePending(ctx context.Context, low, high, sender uuid.UUID) (bool, error)
 	GetRelation(ctx context.Context, low, high uuid.UUID) (*models.Friend, error)
 	GetIncomingRequests(ctx context.Context, userID uuid.UUID) ([]models.Friend, error)
 	GetOutgoingRequests(ctx context.Context, userID uuid.UUID) ([]models.Friend, error)
@@ -48,7 +49,13 @@ func (r *friendRepository) Update(
 	ctx context.Context,
 	friend *models.Friend,
 ) error {
-	return r.db.WithContext(ctx).Save(friend).Error
+	result := r.db.WithContext(ctx).Model(&models.Friend{}).
+		Where("id = ? AND status = ? AND requested_by = ?", friend.ID, "pending", friend.RequestedBy).
+		Update("status", friend.Status)
+	if result.Error == nil && result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+	return result.Error
 }
 
 func (r *friendRepository) GetAcceptedByUser(
@@ -122,4 +129,11 @@ func (r *friendRepository) GetOutgoingRequests(ctx context.Context, userID uuid.
 		Find(&requests).Error
 
 	return requests, err
+}
+
+func (r *friendRepository) DeletePending(ctx context.Context, low, high, sender uuid.UUID) (bool, error) {
+	result := r.db.WithContext(ctx).
+		Where("user_low_id = ? AND user_high_id = ? AND status = ? AND requested_by = ?", low, high, "pending", sender).
+		Delete(&models.Friend{})
+	return result.RowsAffected > 0, result.Error
 }
